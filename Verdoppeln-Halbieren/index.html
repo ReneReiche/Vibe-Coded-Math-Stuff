@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verdoppeln & Halbieren</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Nunito:wght@400;700;900&display=swap');
+
+  :root {
+    --red-fill: #e8535a;
+    --red-border: #c0363d;
+    --blue-fill: #4a9fd4;
+    --blue-border: #2f7ab0;
+    --bg: #fdf8f2;
+    --card-bg: #ffffff;
+    --text: #2a2a2a;
+    --placeholder: #bbb;
+    --shadow: 0 8px 40px rgba(0,0,0,0.10);
+    --cell-size: 52px;
+    --cell-gap: 5px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Subtle background pattern */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(232,83,90,0.06) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(74,159,212,0.07) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    padding: 56px 72px 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 44px;
+    min-width: 700px;
+    position: relative;
+    animation: cardIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes cardIn {
+    from { transform: scale(0.92) translateY(12px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  /* ── TYPE BADGE ── */
+  .type-badge {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Andika', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 22px;
+    border-radius: 50px;
+    white-space: nowrap;
+  }
+  .type-badge.verdoppeln {
+    background: var(--red-fill);
+    color: #fff;
+  }
+  .type-badge.halbieren {
+    background: var(--blue-fill);
+    color: #fff;
+  }
+
+  /* ── ZWANZIGERFELD ── */
+  .zwanzigerfeld {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .row {
+    display: flex;
+    gap: var(--cell-gap);
+  }
+
+  .zehner {
+    display: flex;
+    gap: var(--cell-gap);
+  }
+
+  /* gap between first and second Zehner */
+  .row .zehner + .zehner {
+    margin-left: 14px;
+  }
+
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    border-radius: 8px;
+    border: 2.5px solid #ddd;
+    background: #f9f9f9;
+    transition: background 0.25s, border-color 0.25s, transform 0.2s;
+  }
+
+  .cell.red {
+    background: var(--red-fill);
+    border-color: var(--red-border);
+  }
+  .cell.blue {
+    background: var(--blue-fill);
+    border-color: var(--blue-border);
+  }
+
+  /* stagger animation for cells */
+  .cell.animate {
+    animation: cellPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes cellPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+
+  /* ── MATH DISPLAY ── */
+  .math {
+    font-family: 'Andika', sans-serif;
+    font-size: 4.2rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+
+  .math .num {
+    transition: color 0.2s;
+  }
+  .math .num.hidden {
+    color: transparent;
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 80px;
+    border-bottom: 5px solid #ccc;
+    height: 1em;
+    vertical-align: bottom;
+    margin-bottom: 4px;
+  }
+
+  .math .placeholder {
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 80px;
+    border-bottom: 5px solid #ccc;
+    height: 1em;
+    vertical-align: bottom;
+    margin-bottom: 4px;
+  }
+  .math .placeholder.solved {
+    border-bottom-color: var(--text);
+  }
+  .math .placeholder.solved::after {
+    content: attr(data-value);
+    color: var(--text);
+    font-family: 'Andika', sans-serif;
+    font-size: 1em;
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
+    animation: numReveal 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes numReveal {
+    from { transform: scale(0.5) translateY(8px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .math .op {
+    color: #aaa;
+    font-weight: 600;
+  }
+
+  /* ── HINT BAR ── */
+  .hint {
+    font-size: 0.85rem;
+    color: #bbb;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    gap: 28px;
+  }
+  .hint span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hint kbd {
+    background: #f0f0f0;
+    border: 1.5px solid #ddd;
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #888;
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="type-badge" id="typeBadge">Verdoppeln</div>
+  <div class="zwanzigerfeld" id="feld"></div>
+  <div class="math" id="mathDisplay"></div>
+  <div class="hint">
+    <span><kbd>→</kbd> Lösung / Nächste</span>
+    <span><kbd>↑</kbd> Alles ausblenden</span>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  // mode: 'question' | 'allHidden' | 'solved'
+  let current = null;
+  let mode = 'question';
+  let persistHidden = false; // stays true once ↑ was pressed
+
+  // Verdoppeln: n from 1..10  →  n+n = 2n
+  // Halbieren: 2n from 2..20, even  →  2n = n+n
+  function randomTask() {
+    const isVerdoppeln = Math.random() < 0.5;
+    if (isVerdoppeln) {
+      const n = Math.floor(Math.random() * 10) + 1; // 1..10
+      return { type: 'verdoppeln', n, result: n * 2 };
+    } else {
+      const n = Math.floor(Math.random() * 10) + 1; // 1..10
+      return { type: 'halbieren', n, result: n * 2 };
+      // shown as: 2n = n + n  (result on left, halves on right)
+    }
+  }
+
+  // ── Build Zwanzigerfeld ────────────────────────────────
+  // Two rows, each row has two Zehner of 5 cells each (= 10 cells per row)
+  // Row 1 = top Zehner, Row 2 = bottom Zehner
+  // Verdoppeln: top row filled [0..n-1], bottom row filled [0..n-1]
+  // Halbieren:  same as verdoppeln (both rows filled with n cells), shown in blue
+
+  function buildFeld(task, animateAll) {
+    const feld = document.getElementById('feld');
+    feld.innerHTML = '';
+
+    const color = task.type === 'verdoppeln' ? 'red' : 'blue';
+    const n = task.n; // cells to fill per row
+
+    for (let row = 0; row < 2; row++) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'row';
+
+      // Two Zehner per row
+      for (let z = 0; z < 2; z++) {
+        const zehnerEl = document.createElement('div');
+        zehnerEl.className = 'zehner';
+
+        for (let c = 0; c < 5; c++) {
+          const cellIndex = z * 5 + c; // 0..9 across the 10 cells
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+
+          if (cellIndex < n) {
+            cell.classList.add(color);
+            if (animateAll) {
+              cell.classList.add('animate');
+              cell.style.animationDelay = (cellIndex * 0.03 + row * 0.15) + 's';
+            }
+          }
+
+          zehnerEl.appendChild(cell);
+        }
+
+        rowEl.appendChild(zehnerEl);
+      }
+
+      feld.appendChild(rowEl);
+    }
+  }
+
+  // ── Build Math Display ─────────────────────────────────
+  // mode: 'question'   → numbers shown, result placeholder empty
+  // mode: 'allHidden'  → all numbers hidden, placeholder empty
+  // mode: 'solved'     → numbers shown, placeholder filled
+
+  function buildMath(task, m) {
+    const el = document.getElementById('mathDisplay');
+    el.innerHTML = '';
+
+    const hide = m === 'allHidden';
+
+    if (task.type === 'verdoppeln') {
+      // n + n = ___
+      el.appendChild(numSpan(task.n, hide));
+      el.appendChild(opSpan('+'));
+      el.appendChild(numSpan(task.n, hide));
+      el.appendChild(opSpan('='));
+      el.appendChild(placeholderSpan(task.result, m === 'solved'));
+
+    } else {
+      // 2n = ___ + ___
+      el.appendChild(numSpan(task.result, hide));
+      el.appendChild(opSpan('='));
+      el.appendChild(placeholderSpan(task.n, m === 'solved'));
+      el.appendChild(opSpan('+'));
+      el.appendChild(placeholderSpan(task.n, m === 'solved'));
+    }
+  }
+
+  function numSpan(val, hidden) {
+    const s = document.createElement('span');
+    s.className = 'num' + (hidden ? ' hidden' : '');
+    s.textContent = val;
+    return s;
+  }
+
+  function opSpan(sym) {
+    const s = document.createElement('span');
+    s.className = 'op';
+    s.textContent = sym;
+    return s;
+  }
+
+  function placeholderSpan(val, solved) {
+    const s = document.createElement('span');
+    let cls = 'placeholder';
+    if (solved) cls += ' solved';
+    s.className = cls;
+    if (solved) s.setAttribute('data-value', val);
+    return s;
+  }
+
+  // ── Update badge ───────────────────────────────────────
+  function updateBadge(task) {
+    const badge = document.getElementById('typeBadge');
+    if (task.type === 'verdoppeln') {
+      badge.textContent = 'Verdoppeln';
+      badge.className = 'type-badge verdoppeln';
+    } else {
+      badge.textContent = 'Halbieren';
+      badge.className = 'type-badge halbieren';
+    }
+  }
+
+  // ── Show new question ──────────────────────────────────
+  function newQuestion() {
+    current = randomTask();
+    mode = persistHidden ? 'allHidden' : 'question';
+    updateBadge(current);
+
+    // Animate card
+    const card = document.getElementById('card');
+    card.style.animation = 'none';
+    card.offsetHeight; // reflow
+    card.style.animation = 'cardIn 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+
+    buildFeld(current, true);
+    buildMath(current, mode);
+  }
+
+  // ── Key handler ────────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (!current) {
+        newQuestion();
+        return;
+      }
+      if (mode === 'question' || mode === 'allHidden') {
+        mode = 'solved';
+        buildFeld(current, false);
+        buildMath(current, 'solved');
+      } else if (mode === 'solved') {
+        newQuestion();
+      }
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!current) return;
+      if (!persistHidden) {
+        // turn ON persist-hidden mode
+        persistHidden = true;
+        mode = 'allHidden';
+        buildFeld(current, false);
+        buildMath(current, 'allHidden');
+      } else {
+        // turn OFF persist-hidden mode → show current question normally
+        persistHidden = false;
+        mode = 'question';
+        buildFeld(current, false);
+        buildMath(current, 'question');
+      }
+    }
+  });
+
+  // ── Start ──────────────────────────────────────────────
+  newQuestion();
+</script>
+</body>
+</html>
