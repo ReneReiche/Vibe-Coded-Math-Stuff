@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<script>// Playables SDK v1.0.0 (Original-Skript beibehalten)
+(function(){'use strict';if(window.playablesSDK)return;var d='playablesGameEventHandler',e='_MetaPlayablesBridge',f=3,g=!1,h=!1,k=!1,l=0,m=window.requestAnimationFrame;function n(a,b){var c={type:a,payload:b||{},timestamp:Date.now()};if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers[d]){try{window.webkit.messageHandlers[d].postMessage(c)}catch(p){}return}if(window[e]&&typeof window[e].postEvent==='function'){try{var q=b||{};q.__secureToken=window.__fbAndroidBridgeAuthToken||'';window[e].postEvent(a,JSON.stringify(q))}catch(p){}return}if(window.parent&&window.parent!==window){try{window.parent.postMessage(c,'*')}catch(p){}return}}function r(){if(g)return;l++;if(l>=f){g=!0;n('game_ready',{frame_count:l,detected_at:Date.now()});return}m.call(window,r)}if(m){window.requestAnimationFrame=function(a){if(!g){return m.call(window,function(b){l++;if(l>=f&&!g){g=!0;n('game_ready',{frame_count:l,detected_at:Date.now()})}a(b)})}return m.call(window,a)}}function s(){var a=['touchstart','mousedown','keydown'];function b(){if(h)return;h=!0;n('user_interaction_start',null);for(var c=0;c<a.length;c++)document.removeEventListener(a[c],b,!0)}for(var c=0;c<a.length;c++)document.addEventListener(a[c],b,!0)}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',s)}else{s()}window.addEventListener('error',function(a){if(k)return;k=!0;n('error',{message:a.message||'Unknown error',source:a.filename||'',lineno:a.lineno||0,colno:a.colno||0,auto_captured:!0})});window.addEventListener('unhandledrejection',function(a){if(k)return;k=!0;var b=a.reason;n('error',{message:(b instanceof Error)?b.message:String(b),type:'unhandled_promise_rejection',auto_captured:!0})});window.playablesSDK={complete:function(a){n('game_ended',{score:a,completed:!0})},error:function(a){if(k)return;k=!0;n('error',{message:a||'Unknown error',auto_captured:!1})},sendEvent:function(a,b){if(!a||typeof a!=='string')return;n(a,b)}};if(m){m.call(window,r)}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zahlenzerlegung bis 10</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+        background: #ffffff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2.5rem;
+        max-width: 900px;
+        width: 100%;
+    }
+
+    /* (2) Anpassung: Rahmen um das Zehnerfeld */
+    .zehnrahmen {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background-color: #f2f1ed; /* Kaum sichtbares, warmes Hellgrau */
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 2px solid #e2e1dd;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .feld-gruppe {
+        display: flex;
+        gap: 4px;
+    }
+
+    .feld {
+        width: 60px;
+        height: 60px;
+        border: 3px solid #808080;
+        border-radius: 8px;
+        transition: background-color 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        background-color: white;
+    }
+
+    .feld.blue {
+        background-color: #5B9BD5;
+    }
+
+    .feld.red {
+        background-color: #C00000;
+    }
+
+    .trennung {
+        width: 12px;
+    }
+
+    .zehn {
+        font-size: 5rem;
+        font-weight: 900;
+        color: #1a1a1a;
+        line-height: 1;
+        text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+    }
+
+    .herz-wrapper {
+        position: relative;
+        width: 320px;
+        height: 290px;
+    }
+
+    .herz {
+        width: 100%;
+        height: 100%;
+    }
+
+    .herz-zahlen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    /* (1) Anpassung: Zahlen näher zur Mitte */
+    .herz-zahl {
+        position: absolute;
+        font-size: 4.5rem;
+        font-weight: 900;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        width: 42%; /* Etwas schmaler für besseren Fokus auf die Mitte */
+        height: 100%;
+        display: flex;
+        align-items: center;
+        top: -10px;
+    }
+
+    .herz-zahl.left {
+        left: 4%;
+        justify-content: flex-end;
+        padding-right: 15px;
+    }
+
+    .herz-zahl.right {
+        right: 4%;
+        justify-content: flex-start;
+        padding-left: 15px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .herz-zahl.right.show {
+        opacity: 1;
+    }
+
+    .anleitung {
+        font-size: 1.5rem;
+        color: #4a4a4a;
+        font-weight: 600;
+        margin-top: 1rem;
+        padding: 12px 24px;
+        background: #f5f5f5;
+        border-radius: 50px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .tasten-hinweis {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #5B9BD5;
+        color: white;
+        border-radius: 6px;
+        margin: 0 4px;
+        font-family: monospace;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+        .feld { width: 45px; height: 45px; }
+        .zehn { font-size: 4rem; }
+        .herz-wrapper { width: 260px; height: 235px; }
+        .herz-zahl { font-size: 3.5rem; }
+    }
+
+    @media (max-width: 480px) {
+        .feld { width: 32px; height: 32px; }
+        .zehn { font-size: 3.5rem; }
+        .herz-wrapper { width: 220px; height: 200px; }
+        .herz-zahl { font-size: 3rem; }
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .herz-zahl.right.show {
+        animation: pulse 0.4s ease;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="zehnrahmen" id="zehnRahmen">
+            <div class="feld-gruppe">
+                <div class="feld" data-index="0"></div>
+                <div class="feld" data-index="1"></div>
+                <div class="feld" data-index="2"></div>
+                <div class="feld" data-index="3"></div>
+                <div class="feld" data-index="4"></div>
+            </div>
+            <div class="trennung"></div>
+            <div class="feld-gruppe">
+                <div class="feld" data-index="5"></div>
+                <div class="feld" data-index="6"></div>
+                <div class="feld" data-index="7"></div>
+                <div class="feld" data-index="8"></div>
+                <div class="feld" data-index="9"></div>
+            </div>
+        </div>
+
+        <div class="zehn">10</div>
+
+        <div class="herz-wrapper">
+            <svg class="herz" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100,170 C100,170 20,120 20,60 C20,30 40,15 65,15 C80,15 90,25 100,35" 
+                      fill="#5B9BD5" stroke="black" stroke-width="4" stroke-linejoin="round"/>
+                <path d="M100,170 C100,170 180,120 180,60 C180,30 160,15 135,15 C120,15 110,25 100,35" 
+                      fill="#C00000" stroke="black" stroke-width="4" stroke-linejoin="round"/>
+                <line x1="100" y1="35" x2="100" y2="165" stroke="black" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round"/>
+            </svg>
+            
+            <div class="herz-zahlen">
+                <div class="herz-zahl left" id="zahlLinks"></div>
+                <div class="herz-zahl right" id="zahlRechts"></div>
+            </div>
+        </div>
+
+        <div class="anleitung">
+            Drücke die Pfeiltaste <span class="tasten-hinweis">→</span>
+        </div>
+    </div>
+
+    <script>
+        const STATE = { QUESTION: 'question', ANSWER: 'answer' };
+        let currentState = STATE.QUESTION;
+        let blueNumber = 0;
+        let redNumber = 0;
+
+        const felder = document.querySelectorAll('.feld');
+        const zahlLinksEl = document.getElementById('zahlLinks');
+        const zahlRechtsEl = document.getElementById('zahlRechts');
+
+        function generateNewTask() {
+            blueNumber = Math.floor(Math.random() * 11);
+            redNumber = 10 - blueNumber;
+            currentState = STATE.QUESTION;
+            updateDisplay();
+        }
+
+        function updateZehnrahmen() {
+            felder.forEach((feld, index) => {
+                feld.classList.remove('blue', 'red');
+                if (index < blueNumber) {
+                    feld.classList.add('blue');
+                } else {
+                    feld.classList.add('red');
+                }
+            });
+        }
+
+        function updateHerz() {
+            zahlLinksEl.textContent = blueNumber;
+            if (currentState === STATE.QUESTION) {
+                zahlRechtsEl.textContent = ''; // (3) Keine Platzhalter mehr
+                zahlRechtsEl.classList.remove('show');
+            } else {
+                zahlRechtsEl.textContent = redNumber;
+                zahlRechtsEl.classList.add('show');
+            }
+        }
+
+        function updateDisplay() {
+            updateZehnrahmen();
+            updateHerz();
+        }
+
+        function handleRightArrow() {
+            if (currentState === STATE.QUESTION) {
+                currentState = STATE.ANSWER;
+                updateHerz();
+            } else {
+                generateNewTask();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                handleRightArrow();
+            }
+        });
+
+        document.body.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                handleRightArrow();
+            }
+        });
+
+        generateNewTask();
+    </script>
+</body>
+</html>
