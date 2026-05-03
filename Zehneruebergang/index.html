@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Zehnerübergang in zwei Schritten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #4f8edc;
+    --blue-border: #2f6db8;
+    --red: #e26565;
+    --red-border: #b03a3a;
+    --slot-bg: #f5f5f3;
+    --slot-border: #d4d4d0;
+    --result: #2aa876;
+    --highlight: #fdf3c4;
+    --highlight-border: #e8d77a;
+    --check: #2aa876;
+    --cross: #d8504c;
+    --text: #2a2a2a;
+
+    --slot-w: 42px;          /* 20-frame slot width */
+    --slot-overlap: 1px;     /* overlap from -1px margin */
+    --group-gap: 5px;        /* gap between 5-groups */
+    --bar-w: 36px;           /* bar cube width */
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: linear-gradient(135deg, #fafaf7 0%, #efeae0 100%);
+  }
+
+  .stage {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 880px;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.05);
+    padding: 32px 40px 40px;
+    position: relative;
+    overflow: hidden;
+    outline: none;
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(0,0,0,0.02) 100%);
+    pointer-events: none;
+  }
+
+  .title-pill {
+    background: var(--blue);
+    color: white;
+    font-size: 22px;
+    font-weight: 500;
+    padding: 10px 32px;
+    border-radius: 999px;
+    width: fit-content;
+    margin: 0 auto 28px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 12px -2px rgba(79,142,220,0.4);
+  }
+
+  /* ============================================================
+     TOP STAGE — number bond + red bar (right-aligned)
+     The bar sits to the right; the bond sits centered above the bar.
+     Generous vertical room so labels don't collide with the bar.
+     ============================================================ */
+  .top-stage {
+    display: flex;
+    justify-content: flex-end;
+    padding-right: 80px;
+    margin-bottom: 16px;
+  }
+
+  .bond-and-bar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Bond block: needs enough height that label B, the V-shape, and the
+     two split-numbers all fit comfortably above the bar (bar starts at
+     bottom of this block). */
+  .bond {
+    position: relative;
+    width: 180px;
+    height: 130px;
+  }
+
+  .bond-top {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 38px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  /* SVG sits below the top number; lines have a small gap at the apex. */
+  .bond-svg {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    overflow: visible;
+  }
+
+  /* Split numbers — positioned via JS at the actual line endpoints
+     so they sit just outside the line ends, not centered on top of each other. */
+  .bond-num {
+    position: absolute;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .bond-num.left  { color: var(--blue); }
+  .bond-num.right { color: var(--red); }
+
+  /* === Red bar (second summand) === */
+  .bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 6px;
+  }
+
+  .bar {
+    display: flex;
+    position: relative;
+  }
+
+  .bar-cube {
+    width: var(--bar-w);
+    height: var(--bar-w);
+    background: var(--red);
+    border: 2px solid var(--red-border);
+    border-radius: 6px;
+    margin-left: -1px;
+    box-sizing: border-box;
+  }
+  .bar-cube:first-child { margin-left: 0; }
+
+  .cursor-track {
+    position: relative;
+    height: 26px;
+    margin-top: 6px;
+  }
+
+  .cursor {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 18px;
+    line-height: 1;
+    user-select: none;
+    transition: left 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ============================================================
+     20-FRAME — fixed left edge, grows rightward only
+     We use a big outer container that's centered under the card,
+     and the frame inside is positioned so that *the empty 20-frame
+     state* sits visually centered. Growth then expands rightward,
+     and the frame stays anchored on its left edge.
+     ============================================================ */
+  .frame-wrap {
+    position: relative;
+    height: calc(2 * var(--slot-w) + 12px);
+    margin: 12px 0 28px;
+  }
+
+  .frame-anchor {
+    /* This is the centered anchor that the *base* frame is centered under.
+       We compute its width = 20 slots + 1 group-gap, with overlapping borders. */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(10 * var(--slot-w) - 9 * var(--slot-overlap) + var(--group-gap));
+    height: 100%;
+  }
+
+  .frame {
+    /* The frame is left-anchored to the frame-anchor. It can grow rightward
+       beyond the anchor's width without recentering. */
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .frame-row {
+    display: flex;
+  }
+
+  .frame-group {
+    display: flex;
+  }
+  .frame-group + .frame-group { margin-left: var(--group-gap); }
+
+  .slot, .cube {
+    width: var(--slot-w);
+    height: var(--slot-w);
+    border-radius: 6px;
+    border: 2px solid;
+    margin-left: calc(-1 * var(--slot-overlap));
+    box-sizing: border-box;
+    position: relative;
+  }
+  .frame-group:first-child .slot:first-child,
+  .frame-group:first-child .cube:first-child {
+    margin-left: 0;
+  }
+
+  /* Slots stay below — empty borders should never cover a cube. */
+  .slot { background: var(--slot-bg); border-color: var(--slot-border); z-index: 0; }
+  .cube.blue { background: var(--blue); border-color: var(--blue-border); z-index: 2; }
+  .cube.red  { background: var(--red);  border-color: var(--red-border);  z-index: 2; }
+
+  /* Landing animation when a red cube lands in the frame */
+  .cube.landing {
+    animation: pop-in 0.18s ease-out;
+  }
+  @keyframes pop-in {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Bar cube fading out when it "moves" to the frame */
+  .bar-cube.vanishing {
+    animation: vanish 0.16s ease-in forwards;
+  }
+  @keyframes vanish {
+    0%   { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.3); opacity: 0; }
+  }
+
+  /* Feedback icons */
+  .feedback-icon {
+    position: absolute;
+    transform: scale(0);
+    font-size: 44px;
+    font-weight: 700;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .feedback-icon.show { transform: scale(1); }
+  .feedback-icon.check { color: var(--check); }
+  .feedback-icon.cross { color: var(--cross); }
+
+  /* Position for frame feedback — to the right of the frame */
+  #fbFrame {
+    top: 50%;
+    margin-top: -22px;
+  }
+
+  /* ============================================================
+     EQUATION AREA
+     ============================================================ */
+  .equation-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    margin-top: 12px;
+  }
+
+  .eq-main-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .eq-main {
+    border: 2px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 14px 32px;
+    font-size: 32px;
+    font-weight: 600;
+    background: white;
+    /* use a baseline-aligned flex so the underline sits flush with the digits */
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .eq-main .blank {
+    display: inline-block;
+    min-width: 60px;
+    border-bottom: 3px solid #2a2a2a;
+    text-align: center;
+    line-height: 1;
+    color: var(--result);
+  }
+  .eq-main .blank.empty::before { content: "\00a0"; }
+
+  .eq-main-wrap .feedback-icon {
+    right: -52px;
+    top: 50%;
+    margin-top: -22px;
+  }
+
+  /* Two-step display */
+  .two-step {
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    column-gap: 14px;
+    row-gap: 8px;
+    align-items: center;
+    font-size: 26px;
+    font-weight: 600;
+    position: relative;
+    padding: 8px 12px;
+  }
+
+  .ts-cell  { text-align: center; min-width: 26px; }
+  .ts-second {
+    text-align: center;
+    min-width: 32px;
+    padding: 4px 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .ts-second.blue { color: var(--blue); }
+  .ts-second.red  { color: var(--red); }
+
+  .ts-result {
+    color: var(--result);
+    text-align: center;
+    min-width: 40px;
+    position: relative;
+  }
+
+  .ts-result.blink   { animation: blink 0.5s ease-in-out 4; }
+  .eq-main .blank.blink { animation: blink 0.5s ease-in-out 4; }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.25; }
+  }
+
+  .highlight-band {
+    position: absolute;
+    background: var(--highlight);
+    border: 1.5px solid var(--highlight-border);
+    border-radius: 8px;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .ts-result-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ts-result-wrap .feedback-icon {
+    right: -48px;
+    top: 50%;
+    margin-top: -22px;
+  }
+
+  /* Hint text */
+  .hint {
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    margin-top: 24px;
+    letter-spacing: 0.3px;
+  }
+  .hint kbd {
+    background: #f0f0ec;
+    border: 1px solid #d4d4d0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 12px;
+    margin: 0 2px;
+    font-weight: 600;
+  }
+
+  .locked .cursor { opacity: 0.4; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="card" id="card" tabindex="0">
+    <div class="title-pill">Addieren über 10</div>
+
+    <!-- Top: number bond + red bar -->
+    <div class="top-stage">
+      <div class="bond-and-bar">
+        <div class="bond" id="bond">
+          <div class="bond-top" id="bondTop">9</div>
+          <!-- SVG with two separate lines that don't meet at the apex -->
+          <svg class="bond-svg" id="bondSvg" width="160" height="60" viewBox="0 0 160 60">
+            <!-- Left (blue) line: starts a few px left of center, goes down-left -->
+            <line x1="74" y1="4" x2="20" y2="50"
+                  stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Right (red) line: starts a few px right of center, goes down-right -->
+            <line x1="86" y1="4" x2="140" y2="50"
+                  stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <div class="bond-num left"  id="bondLeft">0</div>
+          <div class="bond-num right" id="bondRight">9</div>
+        </div>
+
+        <div class="bar-wrap">
+          <div class="bar" id="bar"></div>
+          <div class="cursor-track" id="cursorTrack">
+            <!-- Filled triangle as cursor -->
+            <svg class="cursor" id="cursor" width="18" height="16" viewBox="0 0 18 16">
+              <path d="M9 1 L17 15 L1 15 Z" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="1" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 20-frame -->
+    <div class="frame-wrap">
+      <div class="frame-anchor" id="frameAnchor">
+        <div class="frame" id="frame">
+          <div class="frame-row" id="row1"></div>
+          <div class="frame-row" id="row2"></div>
+        </div>
+        <div class="feedback-icon" id="fbFrame">✓</div>
+      </div>
+    </div>
+
+    <!-- Equations -->
+    <div class="equation-area">
+      <div class="eq-main-wrap">
+        <div class="eq-main">
+          <span id="eqA">7</span>
+          <span>+</span>
+          <span id="eqB">9</span>
+          <span>=</span>
+          <span class="blank empty" id="eqResult"></span>
+        </div>
+        <div class="feedback-icon" id="fbMain">✓</div>
+      </div>
+
+      <div class="two-step" id="twoStep">
+        <div class="highlight-band" id="highlightBand"></div>
+        <div class="ts-cell" id="ts1a">7</div>
+        <div class="ts-cell">+</div>
+        <div class="ts-second blue" id="ts1b">2</div>
+        <div class="ts-cell">=</div>
+        <div class="ts-cell">10</div>
+
+        <div class="ts-cell">10</div>
+        <div class="ts-cell">+</div>
+        <div class="ts-second red" id="ts2b">7</div>
+        <div class="ts-cell">=</div>
+        <div class="ts-result-wrap">
+          <div class="ts-result" id="tsResult">17</div>
+          <div class="feedback-icon" id="fbResult">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint">
+      <kbd>←</kbd> <kbd>→</kbd> Trennposition wählen &nbsp;·&nbsp; <kbd>Enter</kbd> bestätigen
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // -------------------- Tunable constants --------------------
+  const TIMING = {
+    cubeStep: 170,        // ms between each cube moving from bar to frame
+    phaseGap: 280,        // ms pause between first-ten and second-ten phases
+    fbFirst: 250,         // ms until first checkmark appears
+    fbSecond: 850,        // ms until second checkmark appears
+    fbThird: 1450,        // ms until third checkmark appears
+    afterFb: 1500,        // ms after last checkmark before retry/next
+    waitBeforeBlink: 2000,// ms steady display before blink starts
+    waitBeforeNext: 4000, // total ms before new problem
+  };
+
+  const BAR_CUBE_W = 36;
+  const BAR_OVERLAP = 1;
+
+  // -------------------- State --------------------
+  let A = 0;
+  let B = 0;
+  let cursorPos = 1;
+  let locked = false;
+  let attempts = 0;
+
+  // -------------------- DOM --------------------
+  const card = document.getElementById('card');
+  const bond = document.getElementById('bond');
+  const bondTop   = document.getElementById('bondTop');
+  const bondLeft  = document.getElementById('bondLeft');
+  const bondRight = document.getElementById('bondRight');
+  const bondSvg   = document.getElementById('bondSvg');
+  const bar = document.getElementById('bar');
+  const cursorTrack = document.getElementById('cursorTrack');
+  const cursor = document.getElementById('cursor');
+  const row1 = document.getElementById('row1');
+  const row2 = document.getElementById('row2');
+
+  const eqA = document.getElementById('eqA');
+  const eqB = document.getElementById('eqB');
+  const eqResult = document.getElementById('eqResult');
+
+  const ts1a = document.getElementById('ts1a');
+  const ts1b = document.getElementById('ts1b');
+  const ts2b = document.getElementById('ts2b');
+  const tsResult = document.getElementById('tsResult');
+  const highlightBand = document.getElementById('highlightBand');
+
+  const fbFrame  = document.getElementById('fbFrame');
+  const fbMain   = document.getElementById('fbMain');
+  const fbResult = document.getElementById('fbResult');
+
+  // -------------------- Helpers --------------------
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function makeSlot() {
+    const s = document.createElement('div');
+    s.className = 'slot';
+    return s;
+  }
+  function makeCube(color) {
+    const c = document.createElement('div');
+    c.className = 'cube ' + color;
+    return c;
+  }
+
+  // -------------------- Bar build --------------------
+  function buildBar(n) {
+    bar.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('div');
+      c.className = 'bar-cube';
+      c.dataset.idx = i;
+      bar.appendChild(c);
+    }
+  }
+
+  // -------------------- Frame build --------------------
+  // Build with two 5-groups per row by default. The `extras` argument lets
+  // us preallocate extra slots for "Rahmen sprengen" growth.
+  // Top row may grow past 10 cells; bottom row stays as a normal 10.
+  function buildEmptyFrame() {
+    row1.innerHTML = '';
+    row2.innerHTML = '';
+    [row1, row2].forEach(row => {
+      const g1 = document.createElement('div'); g1.className = 'frame-group';
+      const g2 = document.createElement('div'); g2.className = 'frame-group';
+      for (let i = 0; i < 5; i++) {
+        g1.appendChild(makeSlot());
+        g2.appendChild(makeSlot());
+      }
+      row.appendChild(g1);
+      row.appendChild(g2);
+    });
+  }
+
+  // Place blue cubes for first summand A in row1 (always fits, A <= 9)
+  function placeBlues() {
+    const cells = row1.querySelectorAll('.slot, .cube');
+    for (let i = 0; i < A; i++) {
+      const cube = makeCube('blue');
+      cells[i].replaceWith(cube);
+    }
+  }
+
+  // -------------------- Bar cursor positioning --------------------
+  // gaps are at indexes 0..B. Gap i is between cube i-1 and cube i.
+  // Cube i (0-indexed) starts at i * (BAR_CUBE_W - BAR_OVERLAP) and is
+  // BAR_CUBE_W wide. So the gap before cube i is at:
+  //   x = i * (BAR_CUBE_W - BAR_OVERLAP)
+  // Special: gap 0 is at x=0; gap B is at the right edge of the bar.
+  function cursorX(pos) {
+    if (pos === 0) return 0;
+    if (pos === B) return B * (BAR_CUBE_W - BAR_OVERLAP) + BAR_OVERLAP;
+    return pos * (BAR_CUBE_W - BAR_OVERLAP);
+  }
+
+  function updateCursor() {
+    cursor.style.left = cursorX(cursorPos) + 'px';
+    bondLeft.textContent  = cursorPos;
+    bondRight.textContent = B - cursorPos;
+    positionBondLabels();
+  }
+
+  // Position the split-number labels at the actual SVG line endpoints
+  // (slightly past the end so they don't sit on the line tip).
+  function positionBondLabels() {
+    const lines = bondSvg.querySelectorAll('line');
+    if (lines.length < 2) return;
+    const svgRect = bondSvg.getBoundingClientRect();
+    const bondRect = bond.getBoundingClientRect();
+
+    const leftLine = lines[0];
+    const rightLine = lines[1];
+
+    // SVG viewBox is 160 wide, 60 tall; rendered size = svgRect.
+    // Get end coords in viewBox units, then scale to rendered px.
+    const sx = svgRect.width / 160;
+    const sy = svgRect.height / 60;
+
+    const lx = parseFloat(leftLine.getAttribute('x2')) * sx;
+    const ly = parseFloat(leftLine.getAttribute('y2')) * sy;
+    const rx = parseFloat(rightLine.getAttribute('x2')) * sx;
+    const ry = parseFloat(rightLine.getAttribute('y2')) * sy;
+
+    // Convert from svg coords to bond coords
+    const svgOffsetX = svgRect.left - bondRect.left;
+    const svgOffsetY = svgRect.top - bondRect.top;
+
+    // Place the *bond-num* element so its inner edge is just past the line tip.
+    // Left number: position its right edge near (lx, ly) so digit sits to the left of line end.
+    // Right number: position its left edge near (rx, ry) so digit sits to the right of line end.
+    const PAD = 4;
+
+    bondLeft.style.left = '0';
+    bondLeft.style.top = '0';
+    // measure
+    const leftW = bondLeft.offsetWidth;
+    const leftH = bondLeft.offsetHeight;
+    bondLeft.style.left = (svgOffsetX + lx - leftW - PAD) + 'px';
+    bondLeft.style.top  = (svgOffsetY + ly - leftH / 2) + 'px';
+
+    bondRight.style.left = '0';
+    bondRight.style.top = '0';
+    const rightH = bondRight.offsetHeight;
+    bondRight.style.left = (svgOffsetX + rx + PAD) + 'px';
+    bondRight.style.top  = (svgOffsetY + ry - rightH / 2) + 'px';
+  }
+
+  function updateTwoStep() {
+    const left  = cursorPos;
+    const right = B - cursorPos;
+    ts1a.textContent = A;
+    ts1b.textContent = left;
+    ts2b.textContent = right;
+    tsResult.textContent = (10 + right);
+    positionHighlight();
+  }
+
+  function positionHighlight() {
+    const a = ts1b.getBoundingClientRect();
+    const b = ts2b.getBoundingClientRect();
+    const parent = highlightBand.parentElement.getBoundingClientRect();
+    const top = Math.min(a.top, b.top) - parent.top - 4;
+    const bottom = Math.max(a.bottom, b.bottom) - parent.top + 4;
+    const left = Math.min(a.left, b.left) - parent.left - 6;
+    const right = Math.max(a.right, b.right) - parent.left + 6;
+    highlightBand.style.top = top + 'px';
+    highlightBand.style.left = left + 'px';
+    highlightBand.style.width = (right - left) + 'px';
+    highlightBand.style.height = (bottom - top) + 'px';
+  }
+
+  // -------------------- New problem --------------------
+  function newProblem() {
+    locked = false;
+    attempts = 0;
+    card.classList.remove('locked');
+
+    A = rand(2, 9);
+    const minB = Math.max(2, 11 - A);
+    const maxB = Math.min(9, 18 - A);
+    B = rand(minB, maxB);
+
+    bondTop.textContent = B;
+
+    eqA.textContent = A;
+    eqB.textContent = B;
+    eqResult.textContent = '';
+    eqResult.classList.add('empty');
+    eqResult.classList.remove('blink');
+    tsResult.classList.remove('blink');
+
+    [fbFrame, fbMain, fbResult].forEach(el => {
+      el.classList.remove('show', 'check', 'cross');
+    });
+
+    cursorPos = (B >= 3) ? rand(1, B - 1) : 1;
+
+    buildBar(B);
+    buildEmptyFrame();
+    placeBlues();
+
+    // After DOM is ready, position bond labels (needs measured sizes)
+    requestAnimationFrame(() => {
+      updateCursor();
+      updateTwoStep();
+      positionFrameFeedback();
+    });
+  }
+
+  // Position the frame feedback icon to the right of the (possibly grown) frame
+  function positionFrameFeedback() {
+    const frame = document.getElementById('frame');
+    const w = frame.getBoundingClientRect().width;
+    fbFrame.style.left = (w + 16) + 'px';
+  }
+
+  // -------------------- Commit / animation --------------------
+  function commit() {
+    if (locked) return;
+    locked = true;
+    card.classList.add('locked');
+
+    const left  = cursorPos;
+    const correct = (left === (10 - A));
+
+    animateMove(0, left, row1, A, () => {
+      setTimeout(() => {
+        animateMove(left, B, row2, 0, () => {
+          finishCommit(correct);
+        });
+      }, TIMING.phaseGap);
+    });
+  }
+
+  // Move bar cubes [startIdx, endIdx) into target row starting at slot `startSlot`.
+  // If startSlot is past the row's current capacity (overflow), append slots first.
+  function animateMove(startIdx, endIdx, targetRow, startSlot, done) {
+    let i = startIdx;
+    const step = () => {
+      if (i >= endIdx) { done(); return; }
+
+      const barCubes = bar.querySelectorAll('.bar-cube');
+      const cube = barCubes[i];
+      if (!cube) { i++; step(); return; }
+
+      const slotIdx = startSlot + (i - startIdx);
+      ensureSlotExists(targetRow, slotIdx);
+
+      const cells = targetRow.querySelectorAll('.slot, .cube');
+      const target = cells[slotIdx];
+      const newCube = makeCube('red');
+      newCube.classList.add('landing');
+      if (target) {
+        target.replaceWith(newCube);
+      } else {
+        const lastGroup = targetRow.lastElementChild;
+        lastGroup.appendChild(newCube);
+      }
+
+      cube.classList.add('vanishing');
+      setTimeout(() => { cube.style.visibility = 'hidden'; }, 160);
+
+      // If row1 grew beyond 10, move the frame feedback icon
+      positionFrameFeedback();
+
+      i++;
+      setTimeout(step, TIMING.cubeStep);
+    };
+    step();
+  }
+
+  // Ensure the target row has a cell at index n. Append to the *last* group.
+  // This keeps the gap between groups intact: an overflowing top row becomes
+  // <group of 5> <gap> <group of 5+overflow>.
+  function ensureSlotExists(row, n) {
+    let count = row.querySelectorAll('.slot, .cube').length;
+    while (count <= n) {
+      row.lastElementChild.appendChild(makeSlot());
+      count++;
+    }
+  }
+
+  function finishCommit(correct) {
+    const sum = A + B;
+    eqResult.textContent = sum;
+    eqResult.classList.remove('empty');
+
+    showFeedback(correct, () => {
+      if (!correct && attempts === 0) {
+        attempts = 1;
+        setTimeout(retryAfterWrong, TIMING.afterFb);
+      } else {
+        scheduleNext();
+      }
+    });
+  }
+
+  function showFeedback(correct, done) {
+    const cls = correct ? 'check' : 'cross';
+    const sym = correct ? '✓' : '✕';
+
+    [fbFrame, fbMain, fbResult].forEach(el => {
+      el.textContent = sym;
+      el.classList.remove('check', 'cross');
+      el.classList.add(cls);
+    });
+
+    setTimeout(() => fbFrame.classList.add('show'),  TIMING.fbFirst);
+    setTimeout(() => fbResult.classList.add('show'), TIMING.fbSecond);
+    setTimeout(() => { fbMain.classList.add('show'); done && done(); }, TIMING.fbThird);
+  }
+
+  function retryAfterWrong() {
+    [fbFrame, fbMain, fbResult].forEach(el => el.classList.remove('show', 'check', 'cross'));
+    eqResult.textContent = '';
+    eqResult.classList.add('empty');
+    buildBar(B);
+    buildEmptyFrame();
+    placeBlues();
+    cursorPos = (B >= 3) ? rand(1, B - 1) : 1;
+    requestAnimationFrame(() => {
+      updateCursor();
+      updateTwoStep();
+      positionFrameFeedback();
+    });
+    locked = false;
+    card.classList.remove('locked');
+  }
+
+  function scheduleNext() {
+    setTimeout(() => {
+      eqResult.classList.add('blink');
+      tsResult.classList.add('blink');
+    }, TIMING.waitBeforeBlink);
+    setTimeout(newProblem, TIMING.waitBeforeNext);
+  }
+
+  // -------------------- Input --------------------
+  document.addEventListener('keydown', (e) => {
+    if (locked) return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (cursorPos > 0) { cursorPos--; updateCursor(); updateTwoStep(); }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (cursorPos < B) { cursorPos++; updateCursor(); updateTwoStep(); }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    }
+  });
+
+  cursorTrack.addEventListener('click', (e) => {
+    if (locked) return;
+    const rect = cursorTrack.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    let best = 0, bestDist = Infinity;
+    for (let p = 0; p <= B; p++) {
+      const d = Math.abs(cursorX(p) - x);
+      if (d < bestDist) { bestDist = d; best = p; }
+    }
+    cursorPos = best;
+    updateCursor();
+    updateTwoStep();
+  });
+
+  window.addEventListener('resize', () => {
+    positionHighlight();
+    positionBondLabels();
+    positionFrameFeedback();
+  });
+
+  // Re-run positioning when fonts finish loading (Nunito metrics differ)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      positionHighlight();
+      positionBondLabels();
+      positionFrameFeedback();
+    });
+  }
+
+  // -------------------- Boot --------------------
+  card.focus();
+  newProblem();
+  setTimeout(() => {
+    positionHighlight();
+    positionBondLabels();
+    positionFrameFeedback();
+  }, 80);
+})();
+</script>
+</body>
+</html>
