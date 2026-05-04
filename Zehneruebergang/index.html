@@ -406,11 +406,85 @@
   }
 
   .locked .cursor { opacity: 0.4; }
+
+  /* ============================================================
+     LEVEL VISIBILITY CLASSES — applied to .card
+     We use visibility:hidden (not display:none) where layout must
+     stay intact for animation targeting. display:none only where
+     the element should fully collapse.
+     ============================================================ */
+  .card.hide-empty-slots .slot { visibility: hidden; }
+  .card.hide-blue-cubes  .cube.blue { visibility: hidden; }
+  .card.hide-bar         .bar-cube { visibility: hidden; }
+  .card.hide-frame       .frame-wrap { display: none; }
+  .card.hide-top-stage   .top-stage { display: none; }
+  .card.hide-cursor      .cursor { visibility: hidden; }
+
+  /* Red half of the bond V hidden (Stufe 5) */
+  .card.bond-red-hidden .bond-num.right,
+  .card.bond-red-hidden .bond-line-red { visibility: hidden; }
+  .card.bond-red-hidden .ts-second.red { visibility: hidden; }
+
+  /* Whole bond hidden (Stufe 9 — handled via hide-top-stage too) */
+  .card.bond-all-hidden .bond { visibility: hidden; }
+
+  /* ============================================================
+     ACTIVE NUMBER INPUT — yellow caret-style outline that pulses
+     ============================================================ */
+  .active-input {
+    outline: 2.5px solid #e8b73a;
+    outline-offset: 3px;
+    border-radius: 6px;
+    animation: caret-pulse 1s ease-in-out infinite;
+  }
+  @keyframes caret-pulse {
+    0%, 100% { outline-color: #e8b73a; }
+    50%      { outline-color: rgba(232,183,58,0.25); }
+  }
+
+  /* ============================================================
+     STREAK BADGE — top-left of card
+     ============================================================ */
+  .streak-badge {
+    position: absolute;
+    top: 18px;
+    left: 24px;
+    background: #fff8d6;
+    border: 1.5px solid #e8d77a;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #8a6d00;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 5;
+    letter-spacing: 0.4px;
+  }
+  .streak-badge.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Tiny level indicator (top-right). Subtle. */
+  .level-badge {
+    position: absolute;
+    top: 18px;
+    right: 24px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #b8b8b0;
+    letter-spacing: 0.5px;
+    z-index: 5;
+  }
 </style>
 </head>
 <body>
 <div class="stage">
   <div class="card" id="card" tabindex="0">
+    <div class="streak-badge" id="streakBadge">Streak <span id="streakNum">0</span></div>
+    <div class="level-badge" id="levelBadge">Lvl 0</div>
     <div class="title-pill">Addieren über 10</div>
 
     <!-- Top: number bond + red bar -->
@@ -421,10 +495,10 @@
           <!-- SVG with two separate lines that don't meet at the apex -->
           <svg class="bond-svg" id="bondSvg" width="160" height="60" viewBox="0 0 160 60">
             <!-- Left (blue) line: starts a few px left of center, goes down-left -->
-            <line x1="65" y1="-5" x2="7" y2="35"
+            <line class="bond-line-blue" x1="65" y1="-5" x2="7" y2="35"
                   stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"/>
             <!-- Right (red) line: starts a few px right of center, goes down-right -->
-            <line x1="95" y1="-5" x2="153" y2="35"
+            <line class="bond-line-red" x1="95" y1="-5" x2="153" y2="35"
                   stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"/>
           </svg>
           <div class="bond-num left"  id="bondLeft">0</div>
@@ -496,25 +570,99 @@
 (function() {
   // -------------------- Tunable constants --------------------
   const TIMING = {
-    cubeStep: 170,        // ms between each cube moving from bar to frame
-    phaseGap: 280,        // ms pause between first-ten and second-ten phases
-    fbFirst: 250,         // ms until first checkmark appears
-    fbSecond: 850,        // ms until second checkmark appears
-    fbThird: 1450,        // ms until third checkmark appears
-    afterFb: 1500,        // ms after last checkmark before retry/next
-    waitBeforeBlink: 2000,// ms steady display before blink starts
-    waitBeforeNext: 4000, // total ms before new problem
+    cubeStep: 170,
+    phaseGap: 280,
+    fbFirst: 250,
+    fbSecond: 850,
+    fbThird: 1450,
+    afterFb: 1500,
+    waitBeforeBlink: 2000,
+    waitBeforeNext: 4000,
+    redFadeAfterPhase1: 1700,  // Stufe 4: pause before hiding red rest
+    promptAfterAnim: 320,      // delay before activating keyboard input
   };
 
   const BAR_CUBE_W = 36;
   const BAR_OVERLAP = 1;
 
-  // -------------------- State --------------------
+  // -------------------- Level definitions --------------------
+  // Each level is a config of independent visibility/behavior switches.
+  // 0 = baseline; 9 = three-step keyboard-only.
+  const LEVELS = [
+    { slots:1, blue:1, bar:1, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 },
+    { slots:0, blue:1, bar:1, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 },
+    { slots:1, blue:1, bar:0, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 },
+    { slots:1, blue:1, bar:1, bond:'live',     anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
+    { slots:1, blue:1, bar:1, bond:'live',     anim:'partial', entry:'result',   cursor:'bar',  frame:1, topStage:1 },
+    { slots:1, blue:1, bar:0, bond:'blueOnly', anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
+    { slots:1, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
+    { slots:0, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
+    { slots:0, blue:0, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
+    { slots:0, blue:0, bar:0, bond:'none',     anim:'none',    entry:'threeStep',cursor:'none', frame:0, topStage:0 },
+  ];
+
+  // -------------------- Scheduler state --------------------
+  let maxLevel = 0;
+  let streakAtMax = 0;
+  let displayStreak = 0;
+  let errorPenalty = 0;
+  let currentLevel = 0;
+
+  // Optional URL override for testing: ?level=4 locks to that level.
+  const urlLevelRaw = parseInt(new URLSearchParams(location.search).get('level'), 10);
+  const urlLevelLocked = !isNaN(urlLevelRaw) && urlLevelRaw >= 0 && urlLevelRaw < LEVELS.length;
+  if (urlLevelLocked) maxLevel = urlLevelRaw;
+
+  function pickLevel() {
+    if (urlLevelLocked) return urlLevelRaw;
+    if (maxLevel === 0) return 0;
+    const decay = errorPenalty > 0 ? 0.7 : 0.5;
+    const weights = [];
+    let sum = 0;
+    for (let k = 0; k <= maxLevel; k++) {
+      const w = Math.pow(decay, maxLevel - k);
+      weights.push(w);
+      sum += w;
+    }
+    let r = Math.random() * sum;
+    for (let k = 0; k <= maxLevel; k++) {
+      r -= weights[k];
+      if (r <= 0) return k;
+    }
+    return maxLevel;
+  }
+
+  function recordResult(correct) {
+    if (correct) {
+      displayStreak++;
+      if (!urlLevelLocked && currentLevel === maxLevel) {
+        streakAtMax++;
+        const threshold = (maxLevel === 0) ? 5 : 3;
+        if (streakAtMax >= threshold && maxLevel < LEVELS.length - 1) {
+          maxLevel++;
+          streakAtMax = 0;
+        }
+      }
+    } else {
+      displayStreak = 0;
+      streakAtMax = 0;
+      errorPenalty = 3;
+    }
+    updateStreakDisplay();
+  }
+
+  // -------------------- Problem state --------------------
   let A = 0;
   let B = 0;
   let cursorPos = 1;
   let locked = false;
   let attempts = 0;
+  let activeInput = null;          // current NumberInput controller
+  let pendingPositionCorrect = false;
+  let pendingMode = null;          // 'result' | 'threeStep' | null
+  let threeStepPhase = null;       // 'blue' | 'red' | 'result' | null
+  let blueEntered = 0;
+  let redEntered = 0;
 
   // -------------------- DOM --------------------
   const card = document.getElementById('card');
@@ -543,9 +691,109 @@
   const fbMain   = document.getElementById('fbMain');
   const fbResult = document.getElementById('fbResult');
 
+  const streakBadge = document.getElementById('streakBadge');
+  const streakNum   = document.getElementById('streakNum');
+  const levelBadge  = document.getElementById('levelBadge');
+
   // -------------------- Helpers --------------------
   function rand(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function updateStreakDisplay() {
+    streakNum.textContent = displayStreak;
+    streakBadge.classList.toggle('show', displayStreak > 0);
+    levelBadge.textContent = 'Lvl ' + currentLevel + (urlLevelLocked ? ' (locked)' : '');
+  }
+
+  function applyLevel(lvl) {
+    const cfg = LEVELS[lvl];
+    card.classList.toggle('hide-empty-slots', !cfg.slots);
+    card.classList.toggle('hide-blue-cubes',  !cfg.blue);
+    card.classList.toggle('hide-bar',         !cfg.bar);
+    card.classList.toggle('hide-frame',       !cfg.frame);
+    card.classList.toggle('hide-top-stage',   !cfg.topStage);
+    card.classList.toggle('hide-cursor',      cfg.cursor === 'none');
+    card.classList.toggle('bond-red-hidden',  cfg.bond === 'blueOnly');
+    card.classList.toggle('bond-all-hidden',  cfg.bond === 'none');
+  }
+
+  // Reset inline styles set during partial-anim hide-red
+  function resetRedFade() {
+    bondRight.style.opacity = '';
+    bondRight.style.transition = '';
+    ts2b.style.opacity = '';
+    ts2b.style.transition = '';
+    const redLine = bondSvg.querySelector('.bond-line-red');
+    if (redLine) {
+      redLine.style.opacity = '';
+      redLine.style.transition = '';
+    }
+  }
+
+  // -------------------- NumberInput controller --------------------
+  // Keyboard-driven number entry attached to a DOM element.
+  // Handles digit typing (overwrite-then-append), backspace, arrow up/down.
+  function NumberInput(el, opts) {
+    const max = opts.max;
+    const start = opts.start;
+    let value = start;
+    let untouched = true;
+
+    function render() {
+      el.textContent = value;
+      el.classList.add('active-input');
+    }
+    function handleKey(e) {
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        const digit = parseInt(e.key, 10);
+        let next;
+        if (untouched) next = digit;
+        else {
+          next = value * 10 + digit;
+          if (next > max) next = digit;
+        }
+        value = next;
+        untouched = false;
+        render();
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        const next = Math.floor(value / 10);
+        value = next;
+        untouched = (next === 0);
+        render();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (value < max) { value++; untouched = false; render(); }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (value > 0) { value--; untouched = false; render(); }
+      }
+    }
+    render();
+    return {
+      handleKey,
+      get value() { return value; },
+      deactivate() { el.classList.remove('active-input'); },
+    };
+  }
+
+  // Wraps a NumberInput so changes mirror to a second element (e.g. tsResult <-> eqResult).
+  function mirroredInput(inp, mirrorEl) {
+    mirrorEl.textContent = inp.value;
+    mirrorEl.classList.add('active-input');
+    return {
+      handleKey: (e) => {
+        inp.handleKey(e);
+        mirrorEl.textContent = inp.value;
+      },
+      get value() { return inp.value; },
+      deactivate: () => {
+        inp.deactivate();
+        mirrorEl.classList.remove('active-input');
+      },
+    };
   }
 
   function makeSlot() {
@@ -612,8 +860,14 @@
 
   function updateCursor() {
     cursor.style.left = cursorX(cursorPos) + 'px';
-    bondLeft.textContent  = cursorPos;
-    bondRight.textContent = B - cursorPos;
+    const cfg = LEVELS[currentLevel];
+    if (cfg.bond === 'live' || cfg.bond === 'blueOnly') {
+      bondLeft.textContent  = cursorPos;
+      bondRight.textContent = B - cursorPos;
+    } else if (cfg.bond === 'qmark') {
+      bondLeft.textContent  = '?';
+      bondRight.textContent = '?';
+    }
     positionBondLabels();
   }
 
@@ -664,10 +918,20 @@
   function updateTwoStep() {
     const left  = cursorPos;
     const right = B - cursorPos;
+    const cfg = LEVELS[currentLevel];
     ts1a.textContent = A;
-    ts1b.textContent = left;
-    ts2b.textContent = right;
-    tsResult.textContent = (10 + right);
+    if (cfg.bond === 'live' || cfg.bond === 'blueOnly') {
+      ts1b.textContent = left;
+      ts2b.textContent = right;
+    } else if (cfg.bond === 'qmark') {
+      ts1b.textContent = '?';
+      ts2b.textContent = '?';
+    }
+    if (cfg.entry === 'auto') {
+      tsResult.textContent = (10 + right);
+    } else if (cfg.entry === 'result') {
+      tsResult.textContent = '_';
+    }
     positionHighlight();
   }
 
@@ -687,9 +951,17 @@
 
   // -------------------- New problem --------------------
   function newProblem() {
+    if (errorPenalty > 0) errorPenalty--;
     locked = false;
     attempts = 0;
+    activeInput = null;
+    pendingMode = null;
+    threeStepPhase = null;
     card.classList.remove('locked');
+
+    currentLevel = pickLevel();
+    applyLevel(currentLevel);
+    const cfg = LEVELS[currentLevel];
 
     A = rand(2, 9);
     const minB = Math.max(2, 11 - A);
@@ -702,12 +974,16 @@
     eqB.textContent = B;
     eqResult.textContent = '';
     eqResult.classList.add('empty');
-    eqResult.classList.remove('blink', 'wrong');
-    tsResult.classList.remove('blink', 'wrong');
+    eqResult.classList.remove('blink', 'wrong', 'active-input');
+    tsResult.classList.remove('blink', 'wrong', 'active-input');
+    ts1b.classList.remove('wrong', 'active-input');
+    ts2b.classList.remove('wrong', 'active-input');
 
     [fbFrame, fbMain, fbResult].forEach(el => {
       el.classList.remove('show', 'check', 'cross');
     });
+
+    resetRedFade();
 
     cursorPos = (B >= 3) ? rand(1, B - 1) : 1;
 
@@ -715,17 +991,38 @@
     buildEmptyFrame();
     placeBlues();
 
-    // After DOM is ready, position bond labels (needs measured sizes)
+    if (cfg.entry === 'threeStep') {
+      setupThreeStep();
+    } else {
+      requestAnimationFrame(() => {
+        updateCursor();
+        updateTwoStep();
+        positionFrameFeedback();
+      });
+    }
+    updateStreakDisplay();
+  }
+
+  function setupThreeStep() {
+    // Bond is hidden anyway, but set placeholders so two-step shows ?
+    bondLeft.textContent = '?';
+    bondRight.textContent = '?';
+    ts1a.textContent = A;
+    ts1b.textContent = '?';
+    ts2b.textContent = '?';
+    tsResult.textContent = '?';
+    pendingMode = 'threeStep';
+    threeStepPhase = 'blue';
     requestAnimationFrame(() => {
-      updateCursor();
-      updateTwoStep();
-      positionFrameFeedback();
+      positionHighlight();
+      activeInput = NumberInput(ts1b, { max: 9, start: 5 });
     });
   }
 
   // Position the frame feedback icon to the right of the (possibly grown) frame
   function positionFrameFeedback() {
     const frame = document.getElementById('frame');
+    if (!frame) return;
     const w = frame.getBoundingClientRect().width;
     fbFrame.style.left = (w + 16) + 'px';
   }
@@ -733,19 +1030,113 @@
   // -------------------- Commit / animation --------------------
   function commit() {
     if (locked) return;
+    const cfg = LEVELS[currentLevel];
+
+    if (cfg.entry === 'threeStep') {
+      // Handled by commitThreeStep via Enter key route
+      return;
+    }
+
     locked = true;
     card.classList.add('locked');
 
     const left  = cursorPos;
-    const correct = (left === (10 - A));
+    const positionCorrect = (left === (10 - A));
 
-    animateMove(0, left, row1, A, () => {
-      setTimeout(() => {
-        animateMove(left, B, row2, 0, () => {
-          finishCommit(correct);
-        });
-      }, TIMING.phaseGap);
-    });
+    if (cfg.anim === 'partial') {
+      // Stufe 4: only first-ten phase, then hide red rest, then prompt result.
+      animateMove(0, left, row1, A, () => {
+        setTimeout(() => {
+          hideRedRest(left);
+          setTimeout(() => startResultEntry(positionCorrect),
+                     TIMING.redFadeAfterPhase1);
+        }, TIMING.phaseGap);
+      });
+    } else {
+      // 'full' anim — both phases.
+      animateMove(0, left, row1, A, () => {
+        setTimeout(() => {
+          animateMove(left, B, row2, 0, () => {
+            if (cfg.entry === 'auto') {
+              finishCommit(positionCorrect);
+            } else {
+              setTimeout(() => startResultEntry(positionCorrect),
+                         TIMING.promptAfterAnim);
+            }
+          });
+        }, TIMING.phaseGap);
+      });
+    }
+  }
+
+  function hideRedRest(left) {
+    const barCubes = bar.querySelectorAll('.bar-cube');
+    for (let i = left; i < B; i++) {
+      if (barCubes[i]) {
+        barCubes[i].style.transition = 'opacity 0.4s';
+        barCubes[i].style.opacity = '0';
+      }
+    }
+    bondRight.style.transition = 'opacity 0.4s';
+    bondRight.style.opacity = '0';
+    ts2b.style.transition = 'opacity 0.4s';
+    ts2b.style.opacity = '0';
+    const redLine = bondSvg.querySelector('.bond-line-red');
+    if (redLine) {
+      redLine.style.transition = 'opacity 0.4s';
+      redLine.style.opacity = '0';
+    }
+  }
+
+  function startResultEntry(positionCorrect) {
+    eqResult.textContent = '';
+    eqResult.classList.remove('empty');
+    pendingPositionCorrect = positionCorrect;
+    pendingMode = 'result';
+    const inp = NumberInput(eqResult, { max: 18, start: 14 });
+    activeInput = mirroredInput(inp, tsResult);
+    locked = false;
+  }
+
+  function commitResult() {
+    if (!activeInput || pendingMode !== 'result') return;
+    locked = true;
+    const sum = A + B;
+    const resultCorrect = (activeInput.value === sum);
+    const correct = pendingPositionCorrect && resultCorrect;
+    activeInput.deactivate();
+    activeInput = null;
+    pendingMode = null;
+    finishCommit(correct);
+  }
+
+  function commitThreeStep() {
+    if (threeStepPhase === 'blue') {
+      blueEntered = activeInput.value;
+      activeInput.deactivate();
+      activeInput = NumberInput(ts2b, { max: 9, start: 5 });
+      threeStepPhase = 'red';
+    } else if (threeStepPhase === 'red') {
+      redEntered = activeInput.value;
+      activeInput.deactivate();
+      eqResult.textContent = '';
+      eqResult.classList.remove('empty');
+      const inp = NumberInput(tsResult, { max: 18, start: 14 });
+      activeInput = mirroredInput(inp, eqResult);
+      threeStepPhase = 'result';
+    } else if (threeStepPhase === 'result') {
+      const resVal = activeInput.value;
+      activeInput.deactivate();
+      activeInput = null;
+      threeStepPhase = null;
+      pendingMode = null;
+      const correctBlue = (blueEntered === (10 - A));
+      const correctRed  = (redEntered === (B - (10 - A)));
+      const correctRes  = (resVal === A + B);
+      const correct = correctBlue && correctRed && correctRes;
+      locked = true;
+      finishCommit(correct);
+    }
   }
 
   // Move bar cubes [startIdx, endIdx) into target row starting at slot `startSlot`.
@@ -798,12 +1189,20 @@
 
   function finishCommit(correct) {
     const sum = A + B;
-    eqResult.textContent = sum;
-    eqResult.classList.remove('empty');
+    const cfg = LEVELS[currentLevel];
+    if (cfg.entry === 'auto') {
+      eqResult.textContent = sum;
+      eqResult.classList.remove('empty');
+    }
     eqResult.classList.toggle('wrong', !correct);
     tsResult.classList.toggle('wrong', !correct);
+    if (cfg.entry === 'threeStep') {
+      ts1b.classList.toggle('wrong', !correct);
+      ts2b.classList.toggle('wrong', !correct);
+    }
 
     showFeedback(correct, () => {
+      recordResult(correct);
       if (!correct && attempts === 0) {
         attempts = 1;
         setTimeout(retryAfterWrong, TIMING.afterFb);
@@ -832,17 +1231,31 @@
     [fbFrame, fbMain, fbResult].forEach(el => el.classList.remove('show', 'check', 'cross'));
     eqResult.textContent = '';
     eqResult.classList.add('empty');
-    eqResult.classList.remove('wrong');
-    tsResult.classList.remove('wrong');
+    eqResult.classList.remove('wrong', 'active-input');
+    tsResult.classList.remove('wrong', 'active-input');
+    ts1b.classList.remove('wrong', 'active-input');
+    ts2b.classList.remove('wrong', 'active-input');
+    activeInput = null;
+    pendingMode = null;
+    threeStepPhase = null;
+
+    resetRedFade();
+
     buildBar(B);
     buildEmptyFrame();
     placeBlues();
     cursorPos = (B >= 3) ? rand(1, B - 1) : 1;
-    requestAnimationFrame(() => {
-      updateCursor();
-      updateTwoStep();
-      positionFrameFeedback();
-    });
+
+    const cfg = LEVELS[currentLevel];
+    if (cfg.entry === 'threeStep') {
+      setupThreeStep();
+    } else {
+      requestAnimationFrame(() => {
+        updateCursor();
+        updateTwoStep();
+        positionFrameFeedback();
+      });
+    }
     locked = false;
     card.classList.remove('locked');
   }
@@ -857,6 +1270,18 @@
 
   // -------------------- Input --------------------
   document.addEventListener('keydown', (e) => {
+    // Active number input takes priority
+    if (activeInput) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (pendingMode === 'threeStep') commitThreeStep();
+        else if (pendingMode === 'result') commitResult();
+        return;
+      }
+      activeInput.handleKey(e);
+      return;
+    }
+
     if (locked) return;
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
@@ -871,7 +1296,7 @@
   });
 
   cursorTrack.addEventListener('click', (e) => {
-    if (locked) return;
+    if (locked || activeInput) return;
     const rect = cursorTrack.getBoundingClientRect();
     const x = e.clientX - rect.left;
     let best = 0, bestDist = Infinity;
