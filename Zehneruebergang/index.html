@@ -317,6 +317,8 @@
     line-height: 1;
     color: var(--result);
   }
+  .eq-main .blank.wrong { color: var(--cross); }
+  .ts-result.wrong { color: var(--cross); }
   .eq-main .blank.empty::before { content: "\00a0"; }
 
   .eq-main-wrap .feedback-icon {
@@ -419,10 +421,10 @@
           <!-- SVG with two separate lines that don't meet at the apex -->
           <svg class="bond-svg" id="bondSvg" width="160" height="60" viewBox="0 0 160 60">
             <!-- Left (blue) line: starts a few px left of center, goes down-left -->
-            <line x1="74" y1="4" x2="20" y2="50"
+            <line x1="65" y1="-5" x2="7" y2="35"
                   stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"/>
             <!-- Right (red) line: starts a few px right of center, goes down-right -->
-            <line x1="86" y1="4" x2="140" y2="50"
+            <line x1="95" y1="-5" x2="153" y2="35"
                   stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"/>
           </svg>
           <div class="bond-num left"  id="bondLeft">0</div>
@@ -651,13 +653,12 @@
     const leftW = bondLeft.offsetWidth;
     const leftH = bondLeft.offsetHeight;
     bondLeft.style.left = (svgOffsetX + lx - leftW - PAD) + 'px';
-    bondLeft.style.top  = (svgOffsetY + ly - leftH / 2) + 'px';
+    bondLeft.style.top  = (svgOffsetY + ly) + 'px';
 
     bondRight.style.left = '0';
     bondRight.style.top = '0';
-    const rightH = bondRight.offsetHeight;
     bondRight.style.left = (svgOffsetX + rx + PAD) + 'px';
-    bondRight.style.top  = (svgOffsetY + ry - rightH / 2) + 'px';
+    bondRight.style.top  = (svgOffsetY + ry) + 'px';
   }
 
   function updateTwoStep() {
@@ -701,8 +702,8 @@
     eqB.textContent = B;
     eqResult.textContent = '';
     eqResult.classList.add('empty');
-    eqResult.classList.remove('blink');
-    tsResult.classList.remove('blink');
+    eqResult.classList.remove('blink', 'wrong');
+    tsResult.classList.remove('blink', 'wrong');
 
     [fbFrame, fbMain, fbResult].forEach(el => {
       el.classList.remove('show', 'check', 'cross');
@@ -799,6 +800,8 @@
     const sum = A + B;
     eqResult.textContent = sum;
     eqResult.classList.remove('empty');
+    eqResult.classList.toggle('wrong', !correct);
+    tsResult.classList.toggle('wrong', !correct);
 
     showFeedback(correct, () => {
       if (!correct && attempts === 0) {
@@ -829,6 +832,8 @@
     [fbFrame, fbMain, fbResult].forEach(el => el.classList.remove('show', 'check', 'cross'));
     eqResult.textContent = '';
     eqResult.classList.add('empty');
+    eqResult.classList.remove('wrong');
+    tsResult.classList.remove('wrong');
     buildBar(B);
     buildEmptyFrame();
     placeBlues();
