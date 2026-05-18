@@ -49,7 +49,7 @@
 
   .card {
     width: 100%;
-    max-width: 880px;
+    max-width: 1040px;
     background: #ffffff;
     border-radius: 24px;
     box-shadow: 0 20px 60px -20px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.05);
@@ -81,15 +81,58 @@
   }
 
   /* ============================================================
-     TOP STAGE — number bond + red bar (right-aligned)
-     The bar sits to the right; the bond sits centered above the bar.
-     Generous vertical room so labels don't collide with the bar.
+     TOP STAGE — inline equation around the bond:
+       "A +"  [bond apex B + V + splits]  "= __"   ← all on one row
+       below the bond hangs the red bar.
+     Eq tokens are vertically anchored to the bond's V apex area,
+     i.e. between bondTop (the to-be-split number) and the split
+     labels below.
      ============================================================ */
   .top-stage {
     display: flex;
     justify-content: flex-end;
-    padding-right: 80px;
-    margin-bottom: 16px;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 18px;
+    padding-right: 40px;   /* pushes bond/bar far right — bondTop (B=9) over slot 9, (B=2) past slot 10 */
+  }
+
+  .eq-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1;
+    margin-top: 52px;   /* aligns with bond V apex zone */
+  }
+  .eq-inline-right { position: relative; }
+  .eq-op { font-weight: 500; }
+
+  .blank-inline {
+    display: inline-block;
+    min-width: 60px;
+    border-bottom: 3px solid #2a2a2a;
+    text-align: center;
+    line-height: 1;
+    color: var(--result);
+  }
+  .blank-inline.empty::before { content: "\00a0"; }
+  .blank-inline.wrong { color: var(--cross); }
+  .blank-inline.blink { animation: blink 0.5s ease-in-out 4; }
+
+  /* Top inline equation is a static "task header" — no live value, no feedback.
+     The bottom boxed eq-main below the frame is where all the action happens. */
+  .eq-inline-right > .feedback-icon { display: none; }
+
+  /* Boxed eq-main below the frame — always visible (Stufes 0-7 show it
+     in addition to the inline top eq; Stufe 8 hides the top-stage and
+     this is the only equation shown). */
+  .eq-fallback {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 14px;
+    position: relative;
   }
 
   .bond-and-bar {
@@ -425,8 +468,6 @@
   .card.bond-red-hidden .bond-line-red { visibility: hidden; }
   .card.bond-red-hidden .ts-second.red { visibility: hidden; }
 
-  /* Whole bond hidden (Stufe 9 — handled via hide-top-stage too) */
-  .card.bond-all-hidden .bond { visibility: hidden; }
 
   /* ============================================================
      ACTIVE NUMBER INPUT — yellow caret-style outline that pulses
@@ -508,8 +549,14 @@
     <div class="level-badge" id="levelBadge">Lvl 0</div>
     <div class="title-pill">Addieren über 10</div>
 
-    <!-- Top: number bond + red bar -->
+    <!-- Top: inline equation around the number bond (left "A +", bond as B,
+         right "= __"), plus red bar below the bond. -->
     <div class="top-stage">
+      <div class="eq-inline eq-inline-left">
+        <span class="eq-token" id="eqA">7</span>
+        <span class="eq-token eq-op">+</span>
+      </div>
+
       <div class="bond-and-bar">
         <div class="bond" id="bond">
           <div class="bond-top" id="bondTop">9</div>
@@ -536,6 +583,12 @@
           </div>
         </div>
       </div>
+
+      <div class="eq-inline eq-inline-right">
+        <span class="eq-token eq-op">=</span>
+        <span class="blank-inline empty" id="eqResult"></span>
+        <div class="feedback-icon" id="fbMain">✓</div>
+      </div>
     </div>
 
     <!-- 20-frame -->
@@ -549,17 +602,21 @@
       </div>
     </div>
 
-    <!-- Equations -->
+    <!-- Two-step display (yellow box). The eq-fallback above is only
+         visible in Stufe 8 (no top-stage visualization). -->
     <div class="equation-area">
-      <div class="eq-main-wrap">
-        <div class="eq-main">
-          <span id="eqA">7</span>
-          <span>+</span>
-          <span id="eqB">9</span>
-          <span>=</span>
-          <span class="blank empty" id="eqResult"></span>
+
+      <div class="eq-fallback" id="eqFallback">
+        <div class="eq-main-wrap">
+          <div class="eq-main">
+            <span id="eqAFallback">7</span>
+            <span>+</span>
+            <span id="eqBFallback">9</span>
+            <span>=</span>
+            <span class="blank empty" id="eqResultFallback"></span>
+          </div>
+          <div class="feedback-icon" id="fbMainFallback">✓</div>
         </div>
-        <div class="feedback-icon" id="fbMain">✓</div>
       </div>
 
       <div class="two-step" id="twoStep">
@@ -621,7 +678,7 @@
     { slots:1, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 5 bond as ?
     { slots:0, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 6 + empty slots hidden
     { slots:0, blue:0, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 7 + blue cubes hidden
-    { slots:0, blue:0, bar:0, bond:'none',     anim:'none',    entry:'threeStep',cursor:'none', frame:0, topStage:0 }, // 8 three-step keyboard only
+    { slots:0, blue:0, bar:0, bond:'none',     anim:'none',    entry:'threeStep',cursor:'none', frame:0, topStage:0 }, // 8 three-step keyboard only (fallback eq-main shown)
   ];
 
   // -------------------- Scheduler state --------------------
@@ -701,8 +758,17 @@
   const row2 = document.getElementById('row2');
 
   const eqA = document.getElementById('eqA');
-  const eqB = document.getElementById('eqB');
   const eqResult = document.getElementById('eqResult');
+
+  // Fallback eq-main (used in Stufe 8). Kept in sync with the top inline eq.
+  const eqAFallback      = document.getElementById('eqAFallback');
+  const eqBFallback      = document.getElementById('eqBFallback');
+  const eqResultFallback = document.getElementById('eqResultFallback');
+  const fbMainFallback   = document.getElementById('fbMainFallback');
+
+  // The bottom boxed eq-main is the only "live" answer slot — the top
+  // inline blank stays as a static placeholder line, never updated.
+  function activeEqResult() { return eqResultFallback; }
 
   const ts1a = document.getElementById('ts1a');
   const ts1b = document.getElementById('ts1b');
@@ -738,7 +804,7 @@
     card.classList.toggle('hide-top-stage',   !cfg.topStage);
     card.classList.toggle('hide-cursor',      cfg.cursor === 'none');
     card.classList.toggle('bond-red-hidden',  cfg.bond === 'blueOnly');
-    card.classList.toggle('bond-all-hidden',  cfg.bond === 'none');
+    card.classList.toggle('show-eq-fallback', !cfg.topStage);
     card.classList.toggle('result-input-hint', cfg.entry === 'result');
     card.classList.toggle('three-step-mode',   cfg.entry === 'threeStep');
   }
@@ -1001,15 +1067,16 @@
     bondTop.textContent = B;
 
     eqA.textContent = A;
-    eqB.textContent = B;
-    eqResult.textContent = '';
-    eqResult.classList.add('empty');
-    eqResult.classList.remove('blink', 'wrong', 'active-input');
+    eqAFallback.textContent = A;
+    eqBFallback.textContent = B;
+    eqResultFallback.textContent = '';
+    eqResultFallback.classList.add('empty');
+    eqResultFallback.classList.remove('blink', 'wrong', 'active-input');
     tsResult.classList.remove('blink', 'wrong', 'active-input');
     ts1b.classList.remove('wrong', 'active-input');
     ts2b.classList.remove('wrong', 'active-input');
 
-    [fbFrame, fbMain, fbResult].forEach(el => {
+    [fbFrame, fbMainFallback, fbResult].forEach(el => {
       el.classList.remove('show', 'check', 'cross');
     });
 
@@ -1140,12 +1207,13 @@
   }
 
   function startResultEntry(positionCorrect) {
-    eqResult.textContent = '';
-    eqResult.classList.remove('empty');
+    const target = activeEqResult();
+    target.textContent = '';
+    target.classList.remove('empty');
     tsResult.classList.remove('placeholder');
     pendingPositionCorrect = positionCorrect;
     pendingMode = 'result';
-    const inp = NumberInput(eqResult, { max: 18, start: 14 });
+    const inp = NumberInput(target, { max: 18, start: 14 });
     const mirror = mirroredInput(inp, tsResult);
 
     const cfg = LEVELS[currentLevel];
@@ -1190,11 +1258,12 @@
     } else if (threeStepPhase === 'red') {
       redEntered = activeInput.value;
       activeInput.deactivate();
-      eqResult.textContent = '';
-      eqResult.classList.remove('empty');
+      const target = activeEqResult();
+      target.textContent = '';
+      target.classList.remove('empty');
       tsResult.classList.remove('placeholder');
       const inp = NumberInput(tsResult, { max: 18, start: 14 });
-      activeInput = mirroredInput(inp, eqResult);
+      activeInput = mirroredInput(inp, target);
       threeStepPhase = 'result';
     } else if (threeStepPhase === 'result') {
       const resVal = activeInput.value;
@@ -1263,10 +1332,10 @@
     const sum = A + B;
     const cfg = LEVELS[currentLevel];
     if (cfg.entry === 'auto') {
-      eqResult.textContent = sum;
-      eqResult.classList.remove('empty');
+      eqResultFallback.textContent = sum;
+      eqResultFallback.classList.remove('empty');
     }
-    eqResult.classList.toggle('wrong', !correct);
+    eqResultFallback.classList.toggle('wrong', !correct);
     tsResult.classList.toggle('wrong', !correct);
     if (cfg.entry === 'threeStep') {
       ts1b.classList.toggle('wrong', !correct);
@@ -1288,7 +1357,7 @@
     const cls = correct ? 'check' : 'cross';
     const sym = correct ? '✓' : '✕';
 
-    [fbFrame, fbMain, fbResult].forEach(el => {
+    [fbFrame, fbMainFallback, fbResult].forEach(el => {
       el.textContent = sym;
       el.classList.remove('check', 'cross');
       el.classList.add(cls);
@@ -1296,14 +1365,17 @@
 
     setTimeout(() => fbFrame.classList.add('show'),  TIMING.fbFirst);
     setTimeout(() => fbResult.classList.add('show'), TIMING.fbSecond);
-    setTimeout(() => { fbMain.classList.add('show'); done && done(); }, TIMING.fbThird);
+    setTimeout(() => {
+      fbMainFallback.classList.add('show');
+      done && done();
+    }, TIMING.fbThird);
   }
 
   function retryAfterWrong() {
-    [fbFrame, fbMain, fbResult].forEach(el => el.classList.remove('show', 'check', 'cross'));
-    eqResult.textContent = '';
-    eqResult.classList.add('empty');
-    eqResult.classList.remove('wrong', 'active-input');
+    [fbFrame, fbMainFallback, fbResult].forEach(el => el.classList.remove('show', 'check', 'cross'));
+    eqResultFallback.textContent = '';
+    eqResultFallback.classList.add('empty');
+    eqResultFallback.classList.remove('wrong', 'active-input');
     tsResult.classList.remove('wrong', 'active-input');
     ts1b.classList.remove('wrong', 'active-input');
     ts2b.classList.remove('wrong', 'active-input');
@@ -1335,7 +1407,7 @@
 
   function scheduleNext() {
     setTimeout(() => {
-      eqResult.classList.add('blink');
+      eqResultFallback.classList.add('blink');
       tsResult.classList.add('blink');
     }, TIMING.waitBeforeBlink);
     setTimeout(newProblem, TIMING.waitBeforeNext);
