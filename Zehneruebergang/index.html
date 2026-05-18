@@ -467,6 +467,27 @@
     transform: translateY(0);
   }
 
+  /* Entry-hint visible only when entry mode is keyboard */
+  .hint-entry { display: none; margin-top: 4px; }
+  .card.result-input-hint .hint-entry,
+  .card.three-step-mode  .hint-entry { display: block; }
+
+  /* "Tentative" red — used in Stufe 4 while result is being entered.
+     Signals that the red Zerlegungszahl is live-derived from the result
+     and not yet committed. */
+  .bond-num.right.red-tentative,
+  .ts-second.red.red-tentative { color: #d8a8a8; }
+  .bond-line-red.red-tentative { stroke: #d8a8a8; }
+
+  /* Neutral placeholder for tsResult while waiting for input — solid line */
+  .ts-result.placeholder {
+    display: inline-block;
+    min-width: 52px;
+    border-bottom: 3px solid #2a2a2a;
+    color: transparent;
+    line-height: 1;
+  }
+
   /* Tiny level indicator (top-right). Subtle. */
   .level-badge {
     position: absolute;
@@ -563,6 +584,9 @@
     <div class="hint">
       <kbd>←</kbd> <kbd>→</kbd> Trennposition wählen &nbsp;·&nbsp; <kbd>Enter</kbd> bestätigen
     </div>
+    <div class="hint hint-entry" id="hintEntry">
+      Ergebnis eingeben: <kbd>0</kbd>–<kbd>9</kbd> tippen oder <kbd>↑</kbd> <kbd>↓</kbd> &nbsp;·&nbsp; <kbd>Enter</kbd> bestätigen
+    </div>
   </div>
 </div>
 
@@ -589,16 +613,15 @@
   // Each level is a config of independent visibility/behavior switches.
   // 0 = baseline; 9 = three-step keyboard-only.
   const LEVELS = [
-    { slots:1, blue:1, bar:1, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 },
-    { slots:0, blue:1, bar:1, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 },
-    { slots:1, blue:1, bar:0, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 },
-    { slots:1, blue:1, bar:1, bond:'live',     anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
-    { slots:1, blue:1, bar:1, bond:'live',     anim:'partial', entry:'result',   cursor:'bar',  frame:1, topStage:1 },
-    { slots:1, blue:1, bar:0, bond:'blueOnly', anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
-    { slots:1, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
-    { slots:0, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
-    { slots:0, blue:0, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 },
-    { slots:0, blue:0, bar:0, bond:'none',     anim:'none',    entry:'threeStep',cursor:'none', frame:0, topStage:0 },
+    { slots:1, blue:1, bar:1, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 }, // 0 baseline
+    { slots:1, blue:1, bar:0, bond:'live',     anim:'full',    entry:'auto',     cursor:'bar',  frame:1, topStage:1 }, // 1 bar hidden
+    { slots:1, blue:1, bar:1, bond:'live',     anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 2 result via keyboard
+    { slots:1, blue:1, bar:0, bond:'blueOnly', anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 3 bar + red bond hidden
+    { slots:1, blue:1, bar:1, bond:'live',     anim:'partial', entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 4 partial anim, red faded after
+    { slots:1, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 5 bond as ?
+    { slots:0, blue:1, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 6 + empty slots hidden
+    { slots:0, blue:0, bar:1, bond:'qmark',    anim:'full',    entry:'result',   cursor:'bar',  frame:1, topStage:1 }, // 7 + blue cubes hidden
+    { slots:0, blue:0, bar:0, bond:'none',     anim:'none',    entry:'threeStep',cursor:'none', frame:0, topStage:0 }, // 8 three-step keyboard only
   ];
 
   // -------------------- Scheduler state --------------------
@@ -637,7 +660,7 @@
       displayStreak++;
       if (!urlLevelLocked && currentLevel === maxLevel) {
         streakAtMax++;
-        const threshold = (maxLevel === 0) ? 5 : 3;
+        const threshold = (maxLevel === 0) ? 5 : (maxLevel < 4 ? 2 : 1);
         if (streakAtMax >= threshold && maxLevel < LEVELS.length - 1) {
           maxLevel++;
           streakAtMax = 0;
@@ -716,18 +739,23 @@
     card.classList.toggle('hide-cursor',      cfg.cursor === 'none');
     card.classList.toggle('bond-red-hidden',  cfg.bond === 'blueOnly');
     card.classList.toggle('bond-all-hidden',  cfg.bond === 'none');
+    card.classList.toggle('result-input-hint', cfg.entry === 'result');
+    card.classList.toggle('three-step-mode',   cfg.entry === 'threeStep');
   }
 
   // Reset inline styles set during partial-anim hide-red
   function resetRedFade() {
     bondRight.style.opacity = '';
     bondRight.style.transition = '';
+    bondRight.classList.remove('red-tentative');
     ts2b.style.opacity = '';
     ts2b.style.transition = '';
+    ts2b.classList.remove('red-tentative');
     const redLine = bondSvg.querySelector('.bond-line-red');
     if (redLine) {
       redLine.style.opacity = '';
       redLine.style.transition = '';
+      redLine.classList.remove('red-tentative');
     }
   }
 
@@ -929,8 +957,10 @@
     }
     if (cfg.entry === 'auto') {
       tsResult.textContent = (10 + right);
+      tsResult.classList.remove('placeholder');
     } else if (cfg.entry === 'result') {
-      tsResult.textContent = '_';
+      tsResult.textContent = ' ';
+      tsResult.classList.add('placeholder');
     }
     positionHighlight();
   }
@@ -994,6 +1024,7 @@
     if (cfg.entry === 'threeStep') {
       setupThreeStep();
     } else {
+      if (cfg.anim === 'partial') hideRedForInput();
       requestAnimationFrame(() => {
         updateCursor();
         updateTwoStep();
@@ -1010,7 +1041,8 @@
     ts1a.textContent = A;
     ts1b.textContent = '?';
     ts2b.textContent = '?';
-    tsResult.textContent = '?';
+    tsResult.textContent = '___';
+    tsResult.classList.add('placeholder');
     pendingMode = 'threeStep';
     threeStepPhase = 'blue';
     requestAnimationFrame(() => {
@@ -1047,7 +1079,8 @@
       // Stufe 4: only first-ten phase, then hide red rest, then prompt result.
       animateMove(0, left, row1, A, () => {
         setTimeout(() => {
-          hideRedRest(left);
+          hideBarRest(left);
+          revealRedForEntry();
           setTimeout(() => startResultEntry(positionCorrect),
                      TIMING.redFadeAfterPhase1);
         }, TIMING.phaseGap);
@@ -1069,7 +1102,17 @@
     }
   }
 
-  function hideRedRest(left) {
+  // Stufe 4: hide red bond pieces during the trennposition-input phase.
+  // No transition — should be invisible from the start without flashing.
+  function hideRedForInput() {
+    bondRight.style.opacity = '0';
+    ts2b.style.opacity = '0';
+    const redLine = bondSvg.querySelector('.bond-line-red');
+    if (redLine) redLine.style.opacity = '0';
+  }
+
+  // Stufe 4: after phase 1, fade out the unused bar cubes (they don't move).
+  function hideBarRest(left) {
     const barCubes = bar.querySelectorAll('.bar-cube');
     for (let i = left; i < B; i++) {
       if (barCubes[i]) {
@@ -1077,24 +1120,52 @@
         barCubes[i].style.opacity = '0';
       }
     }
-    bondRight.style.transition = 'opacity 0.4s';
-    bondRight.style.opacity = '0';
-    ts2b.style.transition = 'opacity 0.4s';
-    ts2b.style.opacity = '0';
+  }
+
+  // Stufe 4: after phase 1, fade in red diagonal + red number (so the kid
+  // can use the now-revealed Zerlegungszahl to compute the result).
+  function revealRedForEntry() {
+    bondRight.classList.add('red-tentative');
+    ts2b.classList.add('red-tentative');
+    bondRight.style.transition = 'opacity 0.5s';
+    bondRight.style.opacity = '1';
+    ts2b.style.transition = 'opacity 0.5s';
+    ts2b.style.opacity = '1';
     const redLine = bondSvg.querySelector('.bond-line-red');
     if (redLine) {
-      redLine.style.transition = 'opacity 0.4s';
-      redLine.style.opacity = '0';
+      redLine.classList.add('red-tentative');
+      redLine.style.transition = 'opacity 0.5s';
+      redLine.style.opacity = '1';
     }
   }
 
   function startResultEntry(positionCorrect) {
     eqResult.textContent = '';
     eqResult.classList.remove('empty');
+    tsResult.classList.remove('placeholder');
     pendingPositionCorrect = positionCorrect;
     pendingMode = 'result';
     const inp = NumberInput(eqResult, { max: 18, start: 14 });
-    activeInput = mirroredInput(inp, tsResult);
+    const mirror = mirroredInput(inp, tsResult);
+
+    const cfg = LEVELS[currentLevel];
+    if (cfg.anim === 'partial') {
+      const updateRed = () => {
+        const v = mirror.value;
+        const red = v - 10;
+        const txt = (red >= 0 && red <= 9) ? String(red) : '?';
+        bondRight.textContent = txt;
+        ts2b.textContent = txt;
+      };
+      updateRed();
+      activeInput = {
+        handleKey: (e) => { mirror.handleKey(e); updateRed(); },
+        get value() { return mirror.value; },
+        deactivate: () => { mirror.deactivate(); },
+      };
+    } else {
+      activeInput = mirror;
+    }
     locked = false;
   }
 
@@ -1121,6 +1192,7 @@
       activeInput.deactivate();
       eqResult.textContent = '';
       eqResult.classList.remove('empty');
+      tsResult.classList.remove('placeholder');
       const inp = NumberInput(tsResult, { max: 18, start: 14 });
       activeInput = mirroredInput(inp, eqResult);
       threeStepPhase = 'result';
@@ -1250,6 +1322,7 @@
     if (cfg.entry === 'threeStep') {
       setupThreeStep();
     } else {
+      if (cfg.anim === 'partial') hideRedForInput();
       requestAnimationFrame(() => {
         updateCursor();
         updateTwoStep();
