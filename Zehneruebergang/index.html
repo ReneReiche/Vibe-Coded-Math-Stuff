@@ -508,6 +508,29 @@
     transform: translateY(0);
   }
 
+  /* "Personal Best" — highest streak this session, sits directly under streak badge. */
+  .best-badge {
+    position: absolute;
+    top: 52px;
+    left: 24px;
+    background: #f3eee0;
+    border: 1.5px solid #ccc0a0;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6e5b2c;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 5;
+    letter-spacing: 0.4px;
+  }
+  .best-badge.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   /* Entry-hint visible only when entry mode is keyboard */
   .hint-entry { display: none; margin-top: 4px; }
   .card.result-input-hint .hint-entry,
@@ -546,6 +569,7 @@
 <div class="stage">
   <div class="card" id="card" tabindex="0">
     <div class="streak-badge" id="streakBadge">Streak <span id="streakNum">0</span></div>
+    <div class="best-badge" id="bestBadge">Personal Best <span id="bestNum">0</span></div>
     <div class="level-badge" id="levelBadge">Lvl 0</div>
     <div class="title-pill">Addieren über 10</div>
 
@@ -685,6 +709,7 @@
   let maxLevel = 0;
   let streakAtMax = 0;
   let displayStreak = 0;
+  let bestStreak = 0;
   let errorPenalty = 0;
   let currentLevel = 0;
 
@@ -782,6 +807,8 @@
 
   const streakBadge = document.getElementById('streakBadge');
   const streakNum   = document.getElementById('streakNum');
+  const bestBadge   = document.getElementById('bestBadge');
+  const bestNum     = document.getElementById('bestNum');
   const levelBadge  = document.getElementById('levelBadge');
 
   // -------------------- Helpers --------------------
@@ -790,8 +817,11 @@
   }
 
   function updateStreakDisplay() {
+    if (displayStreak > bestStreak) bestStreak = displayStreak;
     streakNum.textContent = displayStreak;
+    bestNum.textContent = bestStreak;
     streakBadge.classList.toggle('show', displayStreak > 0);
+    bestBadge.classList.toggle('show', bestStreak > 0);
     levelBadge.textContent = 'Lvl ' + currentLevel + (urlLevelLocked ? ' (locked)' : '');
   }
 
