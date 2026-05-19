@@ -162,13 +162,14 @@
     </div>
 
     <div class="footer-hint">
-        Tipp: <b>→</b> zum Starten und Auflösen &nbsp;|&nbsp; <b>↑</b> wechselt zwischen ZR10 und ZR20 (ohne Zehnerübergang).
+        Tipp: <b>→</b> zum Starten und Auflösen &nbsp;|&nbsp; <b>↑</b> wechselt zwischen ZR10 und ZR20 (ohne Zehnerübergang) &nbsp;|&nbsp; <b>↓</b> blendet die Wendeplättchen aus/ein.
     </div>
 
     <script>
         let currentTarget, currentPart1, currentPart2;
         let isSolved = true;
         let maxRange = 10; // Start im ZR10, per Pfeil-nach-oben auf ZR20 umschaltbar
+        let showDots = true; // Wendeplättchen-Visualisierung, per Pfeil-nach-unten umschaltbar
 
         function generateTask() {
             // Zahlraum bis maxRange (10 oder 20)
@@ -212,6 +213,7 @@
             
             const container = document.getElementById('dot-container');
             container.innerHTML = '';
+            container.style.visibility = showDots ? 'visible' : 'hidden';
 
             const row1 = document.createElement('div');
             row1.className = 'row';
@@ -251,6 +253,9 @@
             } else if (e.key === 'ArrowUp') {
                 maxRange = (maxRange === 10) ? 20 : 10;
                 generateTask();
+            } else if (e.key === 'ArrowDown') {
+                showDots = !showDots;
+                document.getElementById('dot-container').style.visibility = showDots ? 'visible' : 'hidden';
             }
         });
 
