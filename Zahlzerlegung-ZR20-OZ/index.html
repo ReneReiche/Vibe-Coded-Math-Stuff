@@ -162,16 +162,17 @@
     </div>
 
     <div class="footer-hint">
-        Tipp: Drücke die <b>Pfeil-nach-Rechts Taste</b> (→) zum Starten und Auflösen.
+        Tipp: <b>→</b> zum Starten und Auflösen &nbsp;|&nbsp; <b>↑</b> wechselt zwischen ZR10 und ZR20 (ohne Zehnerübergang).
     </div>
 
     <script>
         let currentTarget, currentPart1, currentPart2;
         let isSolved = true;
+        let maxRange = 10; // Start im ZR10, per Pfeil-nach-oben auf ZR20 umschaltbar
 
         function generateTask() {
-            // Zahlraum bis 20
-            currentTarget = Math.floor(Math.random() * 19) + 2; 
+            // Zahlraum bis maxRange (10 oder 20)
+            currentTarget = Math.floor(Math.random() * (maxRange - 1)) + 2;
 
             let valid = false;
             while (!valid) {
@@ -247,6 +248,9 @@
                 } else {
                     solveTask();
                 }
+            } else if (e.key === 'ArrowUp') {
+                maxRange = (maxRange === 10) ? 20 : 10;
+                generateTask();
             }
         });
 
