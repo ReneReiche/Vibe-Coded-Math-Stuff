@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dienes-Material im ZR 100</title>
+    <style>
+        :root {
+            /* Grundeinheit: Kantenlaenge eines Einerwuerfels. Skaliert mit dem Beamer-Bild. */
+            --u: clamp(16px, 4.2vmin, 52px);
+
+            --wood: #f6e9bd;
+            --wood-top: #fbf3d6;
+            --edge: #bfa05a;
+            --line: rgba(150, 118, 52, 0.55);
+
+            --blue: #2196F3;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            padding: 40px 60px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .board {
+            display: flex;
+            align-items: center;
+            gap: calc(var(--u) * 2.5);
+        }
+
+        /* Feste Buehnengroesse, damit die Stellenwerttafel bei jeder Aufgabe an
+           derselben Stelle steht (kein Springen am Beamer). */
+        .stage {
+            width: calc(var(--u) * 10 + 4px);
+            height: calc(var(--u) * 12);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        /* ---------- Dienes-Material ---------- */
+
+        .rods {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Luecke nach der 5. Stange (Kraft der Fuenf) */
+        .rods .rod:nth-child(6) {
+            margin-top: calc(var(--u) * 0.5);
+        }
+
+        .rod, .cube, .plate {
+            background-color: var(--wood);
+            border: 1.5px solid var(--edge);
+            border-radius: 4px;
+            box-sizing: border-box;
+            box-shadow: inset 0 calc(var(--u) * 0.18) 0 rgba(255,255,255,0.55);
+        }
+
+        .rod {
+            width: calc(var(--u) * 10);
+            height: var(--u);
+            background-image: repeating-linear-gradient(
+                to right,
+                var(--line) 0 1.5px,
+                transparent 1.5px var(--u)
+            );
+        }
+
+        .plate {
+            width: calc(var(--u) * 10);
+            height: calc(var(--u) * 10);
+            background-image:
+                repeating-linear-gradient(to right,  var(--line) 0 1.5px, transparent 1.5px var(--u)),
+                repeating-linear-gradient(to bottom, var(--line) 0 1.5px, transparent 1.5px var(--u));
+        }
+
+        .cube {
+            width: var(--u);
+            height: var(--u);
+            flex: 0 0 auto;
+        }
+
+        /* Einerwuerfel liegen leicht unordentlich aneinander */
+        .ones {
+            display: flex;
+            align-items: flex-end;
+            margin-top: 2px;
+            padding-top: calc(var(--u) * 0.1);
+            height: calc(var(--u) * 1.25);
+        }
+
+        /* ---------- Stellenwerttafel ---------- */
+
+        .pv-table {
+            border-collapse: collapse;
+            font-size: calc(var(--u) * 1.15);
+        }
+
+        .pv-table th, .pv-table td {
+            border: 2px solid #555;
+            width: calc(var(--u) * 2.2);
+            height: calc(var(--u) * 1.9);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .pv-table th {
+            background: #e9ebee;
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* Breiter und rechtsbuendig, damit die Zahl nicht mit der E-Spalte
+           zu einer Zahl verschmilzt (7 | 7 las sich sonst wie 77). */
+        .pv-table td.zahl, .pv-table th.zahl {
+            width: calc(var(--u) * 5);
+            text-align: right;
+            padding-right: calc(var(--u) * 0.6);
+            border-left-width: 2px;
+        }
+
+        .pv-table td {
+            color: var(--blue);
+            font-weight: 700;
+            font-size: calc(var(--u) * 1.45);
+        }
+
+        .footer-hint {
+            position: absolute;
+            bottom: 30px;
+            font-size: 16px;
+            color: #aaa;
+            background: rgba(0,0,0,0.03);
+            padding: 8px 20px;
+            border-radius: 20px;
+        }
+
+        .fade-in { animation: fadeIn 0.35s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="board">
+            <div class="stage"><div id="material"></div></div>
+
+            <table class="pv-table">
+                <thead>
+                    <tr>
+                        <th>H</th><th>Z</th><th>E</th><th class="zahl">Zahl</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="cell-h"></td>
+                        <td id="cell-z"></td>
+                        <td id="cell-e"></td>
+                        <td class="zahl" id="cell-zahl"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer-hint" id="hint">
+        Tipp: <b>&rarr;</b> zeigt die L&ouml;sung, noch einmal <b>&rarr;</b> bringt die n&auml;chste Aufgabe.
+    </div>
+
+    <script>
+    /* ------------------------------------------------------------------
+       Aufgabentypen
+       Jeder Typ liefert: generate() -> task, render(task) -> HTML-Element,
+       solution(task) -> { h, z, e, zahl }.
+       Weitere Typen (Hundertertafel, Hunderterfeld, ...) einfach unten in
+       TASK_TYPES ergaenzen; die Pfeil-nach-oben-Taste schaltet dann durch.
+       ------------------------------------------------------------------ */
+
+    function el(tag, className) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        return node;
+    }
+
+    const dienesType = {
+        id: 'dienes',
+        name: 'Dienes-Material',
+
+        generate(previous) {
+            let n;
+            do {
+                n = Math.floor(Math.random() * 100) + 1; // 1 .. 100
+            } while (previous && n === previous.n);
+            return { n: n };
+        },
+
+        render(task) {
+            const wrap = el('div');
+            const n = task.n;
+
+            if (n === 100) {
+                wrap.appendChild(el('div', 'plate'));
+                return wrap;
+            }
+
+            const tens = Math.floor(n / 10);
+            const ones = n % 10;
+
+            if (tens > 0) {
+                const rods = el('div', 'rods');
+                for (let i = 0; i < tens; i++) rods.appendChild(el('div', 'rod'));
+                wrap.appendChild(rods);
+            }
+
+            if (ones > 0) {
+                const row = el('div', 'ones');
+                for (let i = 0; i < ones; i++) {
+                    const cube = el('div', 'cube');
+                    // leicht unperfekt aneinandergelegt
+                    const rot   = (Math.random() * 6 - 3).toFixed(2);
+                    const shift = (Math.random() * 0.16 - 0.05).toFixed(3);
+                    const drop  = (Math.random() * 0.12).toFixed(3);
+                    cube.style.transform = 'rotate(' + rot + 'deg) translateY(calc(var(--u) * ' + drop + '))';
+                    cube.style.marginLeft = (i === 0 ? '0' : 'calc(var(--u) * ' + shift + ')');
+                    row.appendChild(cube);
+                }
+                wrap.appendChild(row);
+            }
+
+            return wrap;
+        },
+
+        solution(task) {
+            const n = task.n;
+            const h = Math.floor(n / 100);
+            const z = Math.floor(n / 10) % 10;
+            const e = n % 10;
+            return {
+                // Fuehrende Nullen bleiben leer, wie im Arbeitsheft
+                h: h > 0 ? String(h) : '',
+                z: (h > 0 || z > 0) ? String(z) : '',
+                e: String(e),
+                zahl: String(n)
+            };
+        }
+    };
+
+    const TASK_TYPES = [dienesType];
+
+    /* ------------------------------------------------------------------
+       Ablauf
+       ------------------------------------------------------------------ */
+
+    let typeIndex = 0;
+    let currentTask = null;
+    let isSolved = true;
+
+    const materialEl = document.getElementById('material');
+    const cells = {
+        h: document.getElementById('cell-h'),
+        z: document.getElementById('cell-z'),
+        e: document.getElementById('cell-e'),
+        zahl: document.getElementById('cell-zahl')
+    };
+
+    function clearTable() {
+        for (const key in cells) cells[key].textContent = '';
+    }
+
+    function newTask() {
+        const type = TASK_TYPES[typeIndex];
+        currentTask = type.generate(currentTask);
+
+        materialEl.innerHTML = '';
+        const rendered = type.render(currentTask);
+        rendered.classList.add('fade-in');
+        materialEl.appendChild(rendered);
+
+        clearTable();
+        isSolved = false;
+    }
+
+    function solveTask() {
+        const solution = TASK_TYPES[typeIndex].solution(currentTask);
+        for (const key in cells) {
+            cells[key].textContent = solution[key];
+            cells[key].classList.remove('fade-in');
+            void cells[key].offsetWidth;
+            cells[key].classList.add('fade-in');
+        }
+        isSolved = true;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+            if (isSolved) newTask();
+            else solveTask();
+        } else if (e.key === 'ArrowUp' && TASK_TYPES.length > 1) {
+            typeIndex = (typeIndex + 1) % TASK_TYPES.length;
+            currentTask = null;
+            newTask();
+        }
+    });
+
+    newTask();
+    </script>
+</body>
+</html>
