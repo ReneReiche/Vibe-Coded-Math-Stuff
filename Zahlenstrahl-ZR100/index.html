@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zahlenstrahl im ZR 100</title>
+    <style>
+        :root {
+            --line: #3a3a3a;      /* dunkles Grau fuer den Zahlenstrahl */
+            --number: #0d0d0d;    /* fast reines Schwarz fuer die Zahlen */
+            --blue: #2196F3;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            position: relative;
+            padding: 58px 50px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            width: 90vw;
+            max-width: 1500px;
+            box-sizing: border-box;
+        }
+
+        /* Ueberschrift wie auf den anderen Seiten (vgl. Zehneruebergang),
+           aber auf die obere Kartenkante gesetzt: 30% ragen heraus, 70%
+           liegen in der Karte.
+           Die beiden Prozentwerte im translate sind unabhaengig voneinander
+           und beziehen sich auf die Pille selbst:
+             X: -50% zentriert sie waagerecht (Haelfte der eigenen Breite
+                nach links) - dieser Wert muss immer -50% bleiben!
+             Y: -30% schiebt sie um 30% der eigenen Hoehe nach oben, also
+                genau die gewuenschte Aufteilung 30% aussen / 70% innen. */
+        .title-pill {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            background: var(--blue);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 500;
+            padding: 10px 32px;
+            border-radius: 999px;
+            width: fit-content;
+            margin: 0;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px -2px rgba(33,150,243,0.4);
+        }
+
+        svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .hint {
+            margin-top: 24px;
+            color: #999;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        /* Striche fahren beim Moduswechsel aus der Linie heraus bzw. hinein.
+           transform-origin wird je Strich inline auf seine Mitte gesetzt. */
+        .tick {
+            transition: transform 320ms cubic-bezier(0.34, 1.5, 0.64, 1);
+        }
+
+        .tick.retracted {
+            transform: scaleY(0);
+            transition-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-card">
+        <div class="title-pill">Zahlenstrahl</div>
+        <svg id="strahl" viewBox="0 0 1080 260" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="hint">Pfeil nach rechts: Antwort zeigen / n&auml;chste Aufgabe &middot; Pfeil nach oben: <span id="mode-label">alle Striche</span></div>
+
+    <script>
+        const svg = document.getElementById('strahl');
+        const NS = 'http://www.w3.org/2000/svg';
+
+        // Geometrie (im viewBox-Koordinatensystem)
+        const UNIT = 20;          // Abstand zwischen zwei Einerstrichen
+        const X0 = 20;            // x-Position des Strahl-Anfangs (Stummel)
+        const BASE_Y = 60;        // y-Position der Linie
+
+        // Schwierigkeit: 0 = alle Striche, 1 = ohne Einerstriche, 2 = nur Zehnerstriche
+        const MODE_LABELS = ['alle Striche', 'ohne Einerstriche', 'nur Zehnerstriche'];
+        let mode = 0;
+
+        let target = 0;
+        let start = 0;
+        let revealed = false;
+        let ticks = [];           // { n, el } aller gezeichneten Striche
+
+        function el(name, attrs) {
+            const e = document.createElementNS(NS, name);
+            for (const k in attrs) e.setAttribute(k, attrs[k]);
+            return e;
+        }
+
+        function newTask() {
+            // Zielzahl: 1..99, kein Zehner
+            do {
+                target = 1 + Math.floor(Math.random() * 99);
+            } while (target % 10 === 0);
+
+            // Startzehner so waehlen, dass die Zahl mind. 5 vom Rand
+            // entfernt liegt und nicht genau in der Mitte (start + 25) sitzt.
+            const options = [];
+            for (let s = 0; s <= 50; s += 10) {
+                if (target - s >= 5 && (s + 50) - target >= 5 && target !== s + 25) {
+                    options.push(s);
+                }
+            }
+            if (options.length > 0) {
+                start = options[Math.floor(Math.random() * options.length)];
+            } else {
+                // Randzahlen (1-4 bzw. 96-99): kein Startzehner erfuellt die
+                // Abstandsbedingung, also den Randausschnitt nehmen
+                start = target < 50 ? 0 : 50;
+            }
+
+            revealed = false;
+            draw();
+        }
+
+        function x(n) {
+            return X0 + UNIT + (n - start) * UNIT;
+        }
+
+        function isVisible(n) {
+            if (n % 10 === 0) return true;
+            if (n % 5 === 0) return mode < 2;
+            return mode < 1;
+        }
+
+        // Moduswechsel ohne Neuaufbau: nur die Klassen umschalten, damit die
+        // CSS-Transition der vorhandenen Striche laufen kann
+        function applyMode() {
+            for (const t of ticks) t.el.classList.toggle('retracted', !isVisible(t.n));
+        }
+
+        function draw() {
+            svg.innerHTML = '';
+            ticks = [];
+            const end = start + 50;
+
+            // Linie inkl. Stummel je eine Einheit ueber die Enden hinaus,
+            // dort aber ohne vertikalen Strich
+            svg.appendChild(el('line', {
+                x1: X0, y1: BASE_Y, x2: x(end) + UNIT, y2: BASE_Y,
+                stroke: 'var(--line)', 'stroke-width': 4, 'stroke-linecap': 'round'
+            }));
+
+            for (let n = start; n <= end; n++) {
+                let h, w;
+                if (n % 10 === 0)      { h = 26; w = 4; }
+                else if (n % 5 === 0)  { h = 19; w = 3; }
+                else                   { h = 13; w = 2; }
+
+                const tick = el('line', {
+                    x1: x(n), y1: BASE_Y - h, x2: x(n), y2: BASE_Y + h,
+                    stroke: 'var(--line)', 'stroke-width': w,
+                    'stroke-linecap': 'round', class: 'tick'
+                });
+                // Von der Mitte aus skalieren, mit leichtem Versatz von links
+                // nach rechts, damit die Striche als Welle ein-/ausfahren
+                tick.style.transformOrigin = x(n) + 'px ' + BASE_Y + 'px';
+                tick.style.transitionDelay = ((n - start) * 5) + 'ms';
+                if (!isVisible(n)) tick.classList.add('retracted');
+                ticks.push({ n: n, el: tick });
+                svg.appendChild(tick);
+
+                if (n % 10 === 0) {
+                    const t = el('text', {
+                        x: x(n), y: BASE_Y + 58, 'text-anchor': 'middle',
+                        'font-size': 30, 'font-weight': 600, fill: 'var(--number)'
+                    });
+                    t.textContent = n;
+                    svg.appendChild(t);
+                }
+            }
+
+            // Markierung der gesuchten Zahl: duenner Strich von der Linie nach
+            // unten zum Kaestchen - unabhaengig davon, ob der eigene Strich
+            // der Zahl im aktuellen Modus sichtbar ist
+            const tx = x(target);
+            const BOX_TOP = 150;
+            svg.appendChild(el('line', {
+                x1: tx, y1: BASE_Y, x2: tx, y2: BOX_TOP,
+                stroke: 'var(--line)', 'stroke-width': 2
+            }));
+
+            // Kaestchen
+            svg.appendChild(el('rect', {
+                x: tx - 38, y: BOX_TOP, width: 76, height: 62, rx: 8,
+                fill: '#ffffff', stroke: 'var(--line)', 'stroke-width': 3
+            }));
+
+            if (revealed) {
+                const t = el('text', {
+                    x: tx, y: BOX_TOP + 44, 'text-anchor': 'middle',
+                    'font-size': 38, 'font-weight': 700, fill: 'var(--blue)'
+                });
+                t.textContent = target;
+                svg.appendChild(t);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (revealed) {
+                    newTask();
+                } else {
+                    revealed = true;
+                    draw();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                mode = (mode + 1) % MODE_LABELS.length;
+                document.getElementById('mode-label').textContent = MODE_LABELS[mode];
+                applyMode();
+            }
+        });
+
+        newTask();
+    </script>
+</body>
+</html>
