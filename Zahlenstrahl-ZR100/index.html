@@ -95,7 +95,7 @@
         <div class="title-pill">Zahlenstrahl</div>
         <svg id="strahl" viewBox="0 0 1080 260" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
-    <div class="hint">Pfeil nach rechts: Antwort zeigen / n&auml;chste Aufgabe &middot; Pfeil nach oben: <span id="mode-label">alle Striche</span></div>
+    <div class="hint">Pfeil nach rechts: Antwort zeigen / n&auml;chste Aufgabe &middot; Pfeil nach oben: <span id="mode-label">Einerstriche ausblenden</span></div>
 
     <script>
         const svg = document.getElementById('strahl');
@@ -106,8 +106,10 @@
         const X0 = 20;            // x-Position des Strahl-Anfangs (Stummel)
         const BASE_Y = 60;        // y-Position der Linie
 
-        // Schwierigkeit: 0 = alle Striche, 1 = ohne Einerstriche, 2 = nur Zehnerstriche
-        const MODE_LABELS = ['alle Striche', 'ohne Einerstriche', 'nur Zehnerstriche'];
+        // Schwierigkeit: 0 = alle Striche, 1 = ohne Einerstriche, 2 = nur Zehnerstriche.
+        // Die Fusszeile nennt die *naechste* Wirkung der Taste, nicht den Ist-Zustand:
+        // NEXT_LABELS[m] beschreibt, was ein Druck aus Zustand m bewirkt.
+        const NEXT_LABELS = ['Einerstriche ausblenden', 'F\u00fcnferstriche ausblenden', 'alle Striche anzeigen'];
         let mode = 0;
 
         let target = 0;
@@ -241,8 +243,8 @@
                 }
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                mode = (mode + 1) % MODE_LABELS.length;
-                document.getElementById('mode-label').textContent = MODE_LABELS[mode];
+                mode = (mode + 1) % NEXT_LABELS.length;
+                document.getElementById('mode-label').textContent = NEXT_LABELS[mode];
                 applyMode();
             }
         });
