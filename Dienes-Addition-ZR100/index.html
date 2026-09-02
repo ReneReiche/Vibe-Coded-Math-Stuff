@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plus mit Dienes-Material im ZR 100</title>
+    <style>
+        :root {
+            /* Grundeinheit: Kantenlaenge eines Einerwuerfels. Wird je Layout
+               (untereinander / nebeneinander) auf dem body ueberschrieben. */
+            --u: clamp(12px, 4.1vmin, 50px);
+
+            --wood: #f6e9bd;
+            --wood-top: #fbf3d6;
+            --edge: #bfa05a;
+            --line: rgba(150, 118, 52, 0.55);
+
+            --blue: #2196F3;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --ink: #0d0d0d;
+        }
+
+        /* Nebeneinander ist Platz nach oben/unten, also groesser zoomen. */
+        body.side-by-side {
+            --u: clamp(14px, 4.4vmin, 52px);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-card {
+            position: relative;
+            background: var(--card-bg);
+            padding: 58px 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: calc(var(--u) * 22);
+            box-sizing: border-box;
+        }
+
+        .title-pill {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            background: var(--blue);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 500;
+            padding: 10px 32px;
+            border-radius: 999px;
+            width: fit-content;
+            margin: 0;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px -2px rgba(33,150,243,0.4);
+        }
+
+        /* ---------- Buehne mit den beiden Summanden ---------- */
+
+        /* Untereinander: Summe <= 100, also zusammen hoechstens 10 Stangen.
+           Der ganze Block bekommt eine feste Hoehe, damit die Gleichung
+           darunter bei jeder Aufgabe an derselben Stelle steht. */
+        .board {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: calc(var(--u) * 0.6);
+            height: calc(var(--u) * 15.5);
+        }
+
+        .stage {
+            width: calc(var(--u) * 10 + 4px);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-end;
+        }
+
+        /* Nebeneinander: jeder Summand bekommt eine feste Hoehe fuer
+           hoechstens 9 Stangen + Fuenferluecke + Einerreihe. */
+        body.side-by-side .board {
+            flex-direction: row;
+            align-items: flex-end;
+            gap: calc(var(--u) * 2.2);
+            height: auto;
+        }
+
+        body.side-by-side .stage {
+            height: calc(var(--u) * 11.4);
+        }
+
+        /* Trennlinie zwischen den Summanden */
+        .board .divider {
+            align-self: stretch;
+            background: #d9d9d9;
+            border-radius: 2px;
+            height: 3px;
+            width: auto;
+        }
+
+        body.side-by-side .board .divider {
+            width: 3px;
+            height: auto;
+        }
+
+        /* ---------- Dienes-Material ---------- */
+
+        .rods {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Luecke nach der 5. Stange (Kraft der Fuenf) */
+        .rods .rod:nth-child(6) {
+            margin-top: calc(var(--u) * 0.5);
+        }
+
+        .rod, .cube {
+            background-color: var(--wood);
+            border: 1.5px solid var(--edge);
+            border-radius: 4px;
+            box-sizing: border-box;
+            box-shadow: inset 0 calc(var(--u) * 0.18) 0 rgba(255,255,255,0.55);
+        }
+
+        .rod {
+            width: calc(var(--u) * 10);
+            height: var(--u);
+            background-image: repeating-linear-gradient(
+                to right,
+                var(--line) 0 1.5px,
+                transparent 1.5px var(--u)
+            );
+        }
+
+        .cube {
+            width: var(--u);
+            height: var(--u);
+            flex: 0 0 auto;
+        }
+
+        /* Einerwuerfel liegen leicht unordentlich aneinander */
+        .ones {
+            display: flex;
+            align-items: flex-end;
+            margin-top: 2px;
+            padding-top: calc(var(--u) * 0.1);
+            height: calc(var(--u) * 1.25);
+        }
+
+        /* ---------- Gleichung ---------- */
+
+        .equation {
+            margin-top: calc(var(--u) * 0.9);
+            font-size: calc(var(--u) * 1.9);
+            font-weight: 500;
+            color: var(--ink);
+            display: flex;
+            align-items: baseline;
+            gap: calc(var(--u) * 0.5);
+            white-space: nowrap;
+        }
+
+        .equation .slot {
+            display: inline-block;
+            min-width: calc(var(--u) * 3.2);
+            text-align: center;
+            border-bottom: 4px solid #444;
+            padding: 0 calc(var(--u) * 0.2);
+            line-height: 1.1;
+            /* Vorgegebene Zahlen gehoeren zur Aufgabenstellung: schwarz. */
+            color: var(--ink);
+            font-weight: 500;
+        }
+
+        /* Aufgedeckte Zahlen blau und fett, klar abgesetzt von der Vorgabe. */
+        .equation .slot.solved {
+            color: var(--blue);
+            font-weight: 700;
+        }
+
+        .equation .slot:empty::before {
+            content: '\00a0';
+        }
+
+        .footer-hint {
+            position: absolute;
+            bottom: 30px;
+            font-size: 16px;
+            color: #aaa;
+            background: rgba(0,0,0,0.03);
+            padding: 8px 20px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .footer-hint b { color: #888; }
+
+        .fade-in { animation: fadeIn 0.35s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="title-pill">Plus mit Dienes-Material</div>
+
+        <div class="board" id="board">
+            <div class="stage"><div id="material-a"></div></div>
+            <div class="divider"></div>
+            <div class="stage"><div id="material-b"></div></div>
+        </div>
+
+        <div class="equation">
+            <span class="slot" id="slot-a"></span>
+            <span>+</span>
+            <span class="slot" id="slot-b"></span>
+            <span>=</span>
+            <span class="slot" id="slot-sum"></span>
+        </div>
+    </div>
+
+    <div class="footer-hint">
+        <b>&rarr;</b> L&ouml;sung / n&auml;chste Aufgabe
+        &nbsp;&middot;&nbsp; <b>&uarr;</b> Aufgabenart: <span id="level-label"></span>
+        &nbsp;&middot;&nbsp; <b>&darr;</b> Anordnung: <span id="layout-label"></span>
+        &nbsp;&middot;&nbsp; <b>&larr;</b> Vorgabe: <span id="prefill-label"></span>
+    </div>
+
+    <script>
+    /* ------------------------------------------------------------------
+       Schwierigkeitsstufen (Pfeil nach oben schaltet rotierend durch)
+       Jede Stufe liefert generate(previous) -> { a, b }.
+       Alles im ZR 100, Summe hoechstens 100.
+       ------------------------------------------------------------------ */
+
+    function randInt(min, max) {
+        return min + Math.floor(Math.random() * (max - min + 1));
+    }
+
+    const LEVELS = [
+        {
+            id: 'z-plus-z',
+            name: 'Z + Z',
+            generate() {
+                // 10..90 + 10..90, Summe <= 100
+                const a = randInt(1, 9) * 10;
+                const b = randInt(1, 10 - a / 10) * 10;
+                return { a: a, b: b };
+            }
+        },
+        {
+            id: 'z-plus-ze',
+            name: 'Z + ZE',
+            generate() {
+                // Zehnerzahl + zweistellige Zahl mit Einern (E != 0), Summe <= 99
+                const a = randInt(1, 8) * 10;
+                const bTens = randInt(1, 9 - a / 10);
+                const bOnes = randInt(1, 9);
+                return { a: a, b: bTens * 10 + bOnes };
+            }
+        }
+    ];
+
+    const LAYOUTS = [
+        { id: 'stacked',      name: 'untereinander' },
+        { id: 'side-by-side', name: 'nebeneinander' }
+    ];
+
+    /* Wie viele Summanden stehen schon in der Gleichung, bevor aufgeloest wird?
+       Pfeil nach links schaltet rotierend durch. */
+    const PREFILLS = [
+        { count: 1, name: 'erste Zahl' },
+        { count: 2, name: 'beide Zahlen' },
+        { count: 0, name: 'keine Zahl' }
+    ];
+
+    /* ------------------------------------------------------------------
+       Dienes-Material zeichnen
+       ------------------------------------------------------------------ */
+
+    function el(tag, className) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        return node;
+    }
+
+    function renderNumber(n) {
+        const wrap = el('div', 'fade-in');
+        const tens = Math.floor(n / 10);
+        const ones = n % 10;
+
+        if (tens > 0) {
+            const rods = el('div', 'rods');
+            for (let i = 0; i < tens; i++) rods.appendChild(el('div', 'rod'));
+            wrap.appendChild(rods);
+        }
+
+        if (ones > 0) {
+            const row = el('div', 'ones');
+            for (let i = 0; i < ones; i++) {
+                const cube = el('div', 'cube');
+                // leicht unperfekt aneinandergelegt
+                const rot   = (Math.random() * 6 - 3).toFixed(2);
+                const shift = (Math.random() * 0.16 - 0.05).toFixed(3);
+                const drop  = (Math.random() * 0.12).toFixed(3);
+                cube.style.transform = 'rotate(' + rot + 'deg) translateY(calc(var(--u) * ' + drop + '))';
+                cube.style.marginLeft = (i === 0 ? '0' : 'calc(var(--u) * ' + shift + ')');
+                row.appendChild(cube);
+            }
+            wrap.appendChild(row);
+        }
+
+        return wrap;
+    }
+
+    /* ------------------------------------------------------------------
+       Ablauf
+       ------------------------------------------------------------------ */
+
+    let levelIndex = 0;
+    let layoutIndex = 0;
+    let prefillIndex = 0;
+    let currentTask = null;
+    let isSolved = true;
+
+    const materialA = document.getElementById('material-a');
+    const materialB = document.getElementById('material-b');
+    const slots = {
+        a:   document.getElementById('slot-a'),
+        b:   document.getElementById('slot-b'),
+        sum: document.getElementById('slot-sum')
+    };
+    const levelLabel   = document.getElementById('level-label');
+    const layoutLabel  = document.getElementById('layout-label');
+    const prefillLabel = document.getElementById('prefill-label');
+
+    function taskValues() {
+        return {
+            a:   String(currentTask.a),
+            b:   String(currentTask.b),
+            sum: String(currentTask.a + currentTask.b)
+        };
+    }
+
+    /* Zeichnet die Gleichung im ungeloesten Zustand: nur die vorgegebenen
+       Summanden stehen da, schwarz wie die Aufgabenstellung. */
+    function renderSlots() {
+        const count = PREFILLS[prefillIndex].count;
+        const values = taskValues();
+        const given = { a: count >= 1, b: count >= 2, sum: false };
+
+        for (const key in slots) {
+            slots[key].textContent = given[key] ? values[key] : '';
+            slots[key].classList.remove('solved', 'fade-in');
+        }
+    }
+
+    function newTask() {
+        const level = LEVELS[levelIndex];
+        let task;
+        do {
+            task = level.generate();
+        } while (currentTask && task.a === currentTask.a && task.b === currentTask.b);
+        currentTask = task;
+
+        materialA.innerHTML = '';
+        materialB.innerHTML = '';
+        materialA.appendChild(renderNumber(task.a));
+        materialB.appendChild(renderNumber(task.b));
+
+        renderSlots();
+        isSolved = false;
+    }
+
+    function solveTask() {
+        const values = taskValues();
+        for (const key in slots) {
+            // Schon vorgegebene Zahlen bleiben stehen, wie sie sind - sonst
+            // springt das Tafelbild beim Aufloesen.
+            if (slots[key].textContent !== '') continue;
+            slots[key].textContent = values[key];
+            slots[key].classList.add('solved');
+            void slots[key].offsetWidth;
+            slots[key].classList.add('fade-in');
+        }
+        isSolved = true;
+    }
+
+    function applyLayout() {
+        const layout = LAYOUTS[layoutIndex];
+        document.body.classList.toggle('side-by-side', layout.id === 'side-by-side');
+        layoutLabel.textContent = layout.name;
+    }
+
+    function updateLevelLabel() {
+        levelLabel.textContent = LEVELS[levelIndex].name;
+    }
+
+    function updatePrefillLabel() {
+        prefillLabel.textContent = PREFILLS[prefillIndex].name;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            if (isSolved) newTask();
+            else solveTask();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            levelIndex = (levelIndex + 1) % LEVELS.length;
+            updateLevelLabel();
+            currentTask = null;
+            newTask();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Nur die Anordnung wechseln, die Aufgabe bleibt stehen.
+            layoutIndex = (layoutIndex + 1) % LAYOUTS.length;
+            applyLayout();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            // Vorgabe umschalten; die Aufgabe bleibt stehen. Ist bereits
+            // aufgeloest, bleibt sie aufgeloest - nur die Vorgabe wechselt
+            // dabei von blau nach schwarz bzw. umgekehrt.
+            prefillIndex = (prefillIndex + 1) % PREFILLS.length;
+            updatePrefillLabel();
+            const wasSolved = isSolved;
+            renderSlots();
+            if (wasSolved) solveTask();
+        }
+    });
+
+    applyLayout();
+    updateLevelLabel();
+    updatePrefillLabel();
+    newTask();
+    </script>
+</body>
+</html>
