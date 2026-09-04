@@ -33,11 +33,25 @@ Daraus folgt:
 | Taste | Bedeutung |
 |---|---|
 | `→` | Lösung zeigen, beim zweiten Druck nächste Aufgabe |
+| `Leertaste` | wirkt genau wie `→` |
 | `↑` | Schwierigkeitsgrad oder Variante umschalten (rotierend) |
 | `↓` | zusätzliche Darstellungshilfe aus-/einblenden |
+| `←` | weitere Variante umschalten (rotierend) |
+| Buchstabe | seltener gebrauchter Modus, z. B. `S` für schrittweises Aufdecken |
 
 `→` ist auf **allen** Seiten belegt und darf seine Bedeutung nie ändern.
-`↑`/`↓` sind optional, je nach Thema.
+`↑`/`↓`/`←` sind optional, je nach Thema.
+
+**Die Leertaste nie als Umschalter benutzen.** Sie ist der reflexhafte
+Weiter-Knopf und der Vorwärtsknopf vieler Präsentationsfernbedienungen — als
+Modusschalter würde sie mitten in der Stunde unbemerkt etwas verstellen.
+Deshalb ist sie ein Zweitname für `→`.
+
+**Sind alle vier Pfeile vergeben, kommen Buchstaben dran, keine Sondertasten.**
+Manche Kolleginnen und Kollegen benutzen iPad-Hüllentastaturen, auf denen
+gerade die Sondertasten an ungewohnten Stellen sitzen; Buchstaben liegen auf
+jeder Tastatur gleich und sind als Anfangsbuchstabe des Modus zusätzlich
+merkbar. Der Buchstabe gehört mit in die Fußzeile.
 
 **Schwierigkeitsmodi gelten auch beim Auflösen.** Was der Modus ausblendet,
 bleibt beim Anzeigen der Lösung ausgeblendet — sonst springt das Tafelbild und
@@ -153,6 +167,7 @@ statt neu zu zeichnen — sonst läuft keine Transition.
 |---|---|
 | `Zahlenstrahl-ZR100` | Zahl am Zahlenstrahl verorten (ZR 100) |
 | `Dienes-ZR100` | Dienes-Material, Zehner/Einer |
+| `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
 | `Verliebte-Zahlen` | Zahlenzerlegung bis 10 |

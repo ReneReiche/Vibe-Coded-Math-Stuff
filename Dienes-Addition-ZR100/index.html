@@ -21,9 +21,11 @@
             --ink: #0d0d0d;
         }
 
-        /* Nebeneinander ist Platz nach oben/unten, also groesser zoomen. */
+        /* Nebeneinander ist Platz nach oben/unten, also groesser zoomen.
+           Der 3.6vw-Anteil greift erst in fast quadratischen Fenstern; bei
+           16:9 und 4:3 gewinnt vmin, das Beamerbild aendert sich also nicht. */
         body.side-by-side {
-            --u: clamp(14px, 4.4vmin, 52px);
+            --u: clamp(14px, min(4.4vmin, 3.6vw), 52px);
         }
 
         body {
@@ -73,16 +75,17 @@
 
         /* ---------- Buehne mit den beiden Summanden ---------- */
 
-        /* Untereinander: Summe <= 100, also zusammen hoechstens 10 Stangen.
-           Der ganze Block bekommt eine feste Hoehe, damit die Gleichung
-           darunter bei jeder Aufgabe an derselben Stelle steht. */
+        /* Untereinander: Der ganze Block bekommt eine feste Hoehe, damit die
+           Gleichung darunter bei jeder Aufgabe an derselben Stelle steht.
+           Gemessenes Maximum ueber alle Aufgaben: 12.72u (10 + 81), hier
+           12.9u reserviert. */
         .board {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             justify-content: center;
             gap: calc(var(--u) * 0.6);
-            height: calc(var(--u) * 15.5);
+            height: calc(var(--u) * 12.9);
         }
 
         .stage {
@@ -94,7 +97,8 @@
         }
 
         /* Nebeneinander: jeder Summand bekommt eine feste Hoehe fuer
-           hoechstens 9 Stangen + Fuenferluecke + Einerreihe. */
+           hoechstens 8 Stangen + Fuenferluecke + Einerreihe (gemessenes
+           Maximum ueber alle Aufgaben: 10.41u, hier 10.6u reserviert). */
         body.side-by-side .board {
             flex-direction: row;
             align-items: flex-end;
@@ -103,7 +107,7 @@
         }
 
         body.side-by-side .stage {
-            height: calc(var(--u) * 11.4);
+            height: calc(var(--u) * 10.6);
         }
 
         /* Trennlinie zwischen den Summanden */
@@ -201,15 +205,29 @@
             content: '\00a0';
         }
 
+        /* Im Textfluss unter der Karte statt am Bildrand: bei 1280x720 lag
+           der Chip sonst auf der unteren Kartenkante. */
         .footer-hint {
-            position: absolute;
-            bottom: 30px;
+            margin-top: 18px;
             font-size: 16px;
             color: #aaa;
             background: rgba(0,0,0,0.03);
             padding: 8px 20px;
             border-radius: 20px;
+            max-width: 96vw;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Jede Gruppe bleibt am Stueck. Muss die Zeile doch einmal umbrechen,
+           rutscht eine ganze Gruppe nach unten und nie ein einzelnes Wort. */
+        .footer-hint .hint-group {
             white-space: nowrap;
+        }
+
+        .footer-hint .hint-sep {
+            margin: 0 6px;
+            color: #ccc;
         }
 
         .footer-hint b { color: #888; }
@@ -243,43 +261,59 @@
     </div>
 
     <div class="footer-hint">
-        <b>&rarr;</b> L&ouml;sung / n&auml;chste Aufgabe
-        &nbsp;&middot;&nbsp; <b>&uarr;</b> Aufgabenart: <span id="level-label"></span>
-        &nbsp;&middot;&nbsp; <b>&darr;</b> Anordnung: <span id="layout-label"></span>
-        &nbsp;&middot;&nbsp; <b>&larr;</b> Vorgabe: <span id="prefill-label"></span>
+        <span class="hint-group"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&uarr;</b> Aufgabenart: <span id="level-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&darr;</b> Anordnung: <span id="layout-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&larr;</b> Vorgabe: <span id="prefill-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
     </div>
 
     <script>
     /* ------------------------------------------------------------------
        Schwierigkeitsstufen (Pfeil nach oben schaltet rotierend durch)
-       Jede Stufe liefert generate(previous) -> { a, b }.
-       Alles im ZR 100, Summe hoechstens 100.
-       ------------------------------------------------------------------ */
+       Jede Stufe zaehlt in pairs() alle erlaubten Aufgaben auf; ausgewaehlt
+       wird spaeter ueber das Ergebnis, nicht ueber die Summanden.
 
-    function randInt(min, max) {
-        return min + Math.floor(Math.random() * (max - min + 1));
-    }
+       Warum: Zieht man erst a und dann b aus dem Rest bis 100, wird der
+       verbleibende Topf fuer b mit wachsendem a immer kleiner - der jeweils
+       groesstmoegliche Wert bekommt dadurch immer mehr Gewicht. Bei a = 90
+       bleibt nur b = 10. Ergebnis war: 31 % aller Z+Z-Aufgaben waren 100 und
+       die Haelfte lag ueber 80. Auch gleichverteiltes Ziehen ueber alle
+       Zahlenpaare hilft nicht, denn 100 hat neun Zerlegungen und 20 nur eine.
+       ------------------------------------------------------------------ */
 
     const LEVELS = [
         {
             id: 'z-plus-z',
             name: 'Z + Z',
-            generate() {
-                // 10..90 + 10..90, Summe <= 100
-                const a = randInt(1, 9) * 10;
-                const b = randInt(1, 10 - a / 10) * 10;
-                return { a: a, b: b };
+            pairs() {
+                // Zehnerzahl + Zehnerzahl, Summe <= 100
+                const list = [];
+                for (let a = 10; a <= 90; a += 10) {
+                    for (let b = 10; a + b <= 100; b += 10) list.push({ a: a, b: b });
+                }
+                return list;
             }
         },
         {
             id: 'z-plus-ze',
             name: 'Z + ZE',
-            generate() {
+            pairs() {
                 // Zehnerzahl + zweistellige Zahl mit Einern (E != 0), Summe <= 99
-                const a = randInt(1, 8) * 10;
-                const bTens = randInt(1, 9 - a / 10);
-                const bOnes = randInt(1, 9);
-                return { a: a, b: bTens * 10 + bOnes };
+                const list = [];
+                for (let a = 10; a <= 80; a += 10) {
+                    for (let bTens = 10; bTens <= 90; bTens += 10) {
+                        for (let bOnes = 1; bOnes <= 9; bOnes++) {
+                            const b = bTens + bOnes;
+                            if (a + b <= 99) list.push({ a: a, b: b });
+                        }
+                    }
+                }
+                return list;
             }
         }
     ];
@@ -296,6 +330,59 @@
         { count: 2, name: 'beide Zahlen' },
         { count: 0, name: 'keine Zahl' }
     ];
+
+    /* ------------------------------------------------------------------
+       Aufgabenauswahl
+
+       Gezogen wird in zwei Schritten: erst das Ergebnis, dann eine seiner
+       Zerlegungen. So ist jedes Ergebnis gleich haeufig, statt dass die
+       grossen Ergebnisse ihre vielen Zerlegungen zusammenzaehlen.
+
+       Die Ergebnisse kommen aus einem Beutel ohne Zuruecklegen: erst wenn
+       alle dran waren, wird neu gemischt. Das verhindert Zufallshaeufungen
+       wie dreimal 100 hintereinander und macht die Verteilung schon
+       innerhalb einer Sitzkreisrunde gleichmaessig.
+       ------------------------------------------------------------------ */
+
+    function shuffle(list) {
+        for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+        }
+        return list;
+    }
+
+    LEVELS.forEach((level) => {
+        level.bySum = new Map();
+        level.pairs().forEach((pair) => {
+            const sum = pair.a + pair.b;
+            if (!level.bySum.has(sum)) level.bySum.set(sum, []);
+            level.bySum.get(sum).push(pair);
+        });
+        level.results = Array.from(level.bySum.keys());
+        level.bag = [];
+    });
+
+    function drawTask(level, previous) {
+        if (level.bag.length === 0) {
+            level.bag = shuffle(level.results.slice());
+            // Beim Nachfuellen darf das letzte Ergebnis nicht sofort wieder
+            // als erstes kommen.
+            const last = level.bag[level.bag.length - 1];
+            if (previous && level.bag.length > 1 && last === previous.a + previous.b) {
+                level.bag[level.bag.length - 1] = level.bag[0];
+                level.bag[0] = last;
+            }
+        }
+
+        const sum = level.bag.pop();
+        const options = level.bySum.get(sum);
+        let pair = options[Math.floor(Math.random() * options.length)];
+        if (previous && options.length > 1 && pair.a === previous.a && pair.b === previous.b) {
+            pair = options[Math.floor(Math.random() * options.length)];
+        }
+        return { a: pair.a, b: pair.b };
+    }
 
     /* ------------------------------------------------------------------
        Dienes-Material zeichnen
@@ -343,8 +430,15 @@
     let levelIndex = 0;
     let layoutIndex = 0;
     let prefillIndex = 0;
+    let stepwise = false;
     let currentTask = null;
-    let isSolved = true;
+
+    // Reihenfolge, in der schrittweise aufgedeckt wird.
+    const REVEAL_ORDER = ['a', 'b', 'sum'];
+
+    // Welche Platzhalter sind bereits aufgedeckt (blau)? Vorgegebene Zahlen
+    // stehen hier nicht drin, die kommen aus der Vorgabe-Stufe.
+    let revealed = new Set();
 
     const materialA = document.getElementById('material-a');
     const materialB = document.getElementById('material-b');
@@ -356,6 +450,7 @@
     const levelLabel   = document.getElementById('level-label');
     const layoutLabel  = document.getElementById('layout-label');
     const prefillLabel = document.getElementById('prefill-label');
+    const revealLabel  = document.getElementById('reveal-label');
 
     function taskValues() {
         return {
@@ -365,48 +460,62 @@
         };
     }
 
-    /* Zeichnet die Gleichung im ungeloesten Zustand: nur die vorgegebenen
-       Summanden stehen da, schwarz wie die Aufgabenstellung. */
-    function renderSlots() {
+    /* Welche Platzhalter sind durch die Vorgabe-Stufe schon gefuellt? */
+    function givenSlots() {
         const count = PREFILLS[prefillIndex].count;
+        return { a: count >= 1, b: count >= 2, sum: false };
+    }
+
+    /* Zeichnet die Gleichung neu: vorgegebene Zahlen schwarz, bereits
+       aufgedeckte blau, der Rest leer. */
+    function renderSlots() {
         const values = taskValues();
-        const given = { a: count >= 1, b: count >= 2, sum: false };
+        const given = givenSlots();
 
         for (const key in slots) {
-            slots[key].textContent = given[key] ? values[key] : '';
-            slots[key].classList.remove('solved', 'fade-in');
+            const show = given[key] || revealed.has(key);
+            slots[key].textContent = show ? values[key] : '';
+            slots[key].classList.remove('fade-in');
+            slots[key].classList.toggle('solved', show && !given[key]);
         }
     }
 
+    /* Noch leere Platzhalter in Aufdeckreihenfolge. Entscheidend ist der
+       tatsaechliche Zustand, nicht die Zahl der Tastendruecke - deshalb
+       stimmt die Anzahl der Schritte bei jeder Vorgabe-Stufe automatisch. */
+    function openSlots() {
+        const given = givenSlots();
+        return REVEAL_ORDER.filter((key) => !given[key] && !revealed.has(key));
+    }
+
+    function fillSlot(key) {
+        slots[key].textContent = taskValues()[key];
+        slots[key].classList.add('solved');
+        void slots[key].offsetWidth;
+        slots[key].classList.add('fade-in');
+        revealed.add(key);
+    }
+
     function newTask() {
-        const level = LEVELS[levelIndex];
-        let task;
-        do {
-            task = level.generate();
-        } while (currentTask && task.a === currentTask.a && task.b === currentTask.b);
-        currentTask = task;
+        currentTask = drawTask(LEVELS[levelIndex], currentTask);
+        const task = currentTask;
 
         materialA.innerHTML = '';
         materialB.innerHTML = '';
         materialA.appendChild(renderNumber(task.a));
         materialB.appendChild(renderNumber(task.b));
 
+        revealed = new Set();
         renderSlots();
-        isSolved = false;
     }
 
-    function solveTask() {
-        const values = taskValues();
-        for (const key in slots) {
-            // Schon vorgegebene Zahlen bleiben stehen, wie sie sind - sonst
-            // springt das Tafelbild beim Aufloesen.
-            if (slots[key].textContent !== '') continue;
-            slots[key].textContent = values[key];
-            slots[key].classList.add('solved');
-            void slots[key].offsetWidth;
-            slots[key].classList.add('fade-in');
-        }
-        isSolved = true;
+    /* Ein Druck auf Pfeil nach rechts: schrittweise nur der naechste leere
+       Platzhalter, sonst alle auf einmal. Schon sichtbare Zahlen werden nie
+       neu gesetzt, damit das Tafelbild nicht springt. */
+    function reveal() {
+        const open = openSlots();
+        if (open.length === 0) return;
+        (stepwise ? open.slice(0, 1) : open).forEach(fillSlot);
     }
 
     function applyLayout() {
@@ -423,11 +532,19 @@
         prefillLabel.textContent = PREFILLS[prefillIndex].name;
     }
 
+    function updateRevealLabel() {
+        revealLabel.textContent = stepwise ? 'schrittweise' : 'alles auf einmal';
+    }
+
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') {
+        // Die Leertaste wirkt wie Pfeil nach rechts: Sie ist der reflexhafte
+        // Weiter-Knopf und der Vorwaertsknopf vieler Praesentationsfernbedienungen.
+        const forward = e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar';
+
+        if (forward) {
             e.preventDefault();
-            if (isSolved) newTask();
-            else solveTask();
+            if (openSlots().length === 0) newTask();
+            else reveal();
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             levelIndex = (levelIndex + 1) % LEVELS.length;
@@ -441,20 +558,24 @@
             applyLayout();
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            // Vorgabe umschalten; die Aufgabe bleibt stehen. Ist bereits
-            // aufgeloest, bleibt sie aufgeloest - nur die Vorgabe wechselt
-            // dabei von blau nach schwarz bzw. umgekehrt.
+            // Vorgabe umschalten; die Aufgabe bleibt stehen. Was schon
+            // aufgedeckt war, bleibt sichtbar und wechselt nur die Farbe.
             prefillIndex = (prefillIndex + 1) % PREFILLS.length;
             updatePrefillLabel();
-            const wasSolved = isSolved;
             renderSlots();
-            if (wasSolved) solveTask();
+        } else if (e.key.toLowerCase() === 's') {
+            // Buchstabe statt Sondertaste: Auf iPad-Huellentastaturen sitzen
+            // gerade die Sondertasten an ungewohnten Stellen.
+            e.preventDefault();
+            stepwise = !stepwise;
+            updateRevealLabel();
         }
     });
 
     applyLayout();
     updateLevelLabel();
     updatePrefillLabel();
+    updateRevealLabel();
     newTask();
     </script>
 </body>
