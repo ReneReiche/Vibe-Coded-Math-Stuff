@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minus mit Dienes-Material im ZR 100</title>
+    <style>
+        :root {
+            /* Grundeinheit: Kantenlaenge eines Einerwuerfels.
+               Groesser als auf der Additionsseite, weil hier nur eine einzige
+               Menge im Bild steht statt zweier - aber nicht viel groesser: bei
+               4.8vmin fuellte die Karte 690 der 720 Pixel Bildhoehe, und die
+               Lesezeichenleiste eines fremden Rechners haette unten schon die
+               Fusszeile abgeschnitten. */
+            --u: clamp(13px, min(4.3vmin, 3.6vw), 52px);
+
+            --wood: #f6e9bd;
+            --edge: #bfa05a;
+            --line: rgba(150, 118, 52, 0.55);
+
+            --blue: #2196F3;
+            --strike: #c62828;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --ink: #0d0d0d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-card {
+            position: relative;
+            background: var(--card-bg);
+            padding: 58px 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .title-pill {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            background: var(--blue);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 500;
+            padding: 10px 32px;
+            border-radius: 999px;
+            width: fit-content;
+            margin: 0;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px -2px rgba(33,150,243,0.4);
+        }
+
+        /* ---------- Buehne ----------
+           Feste Groesse, damit die Gleichung darunter bei jeder Aufgabe an
+           derselben Stelle steht und die Karte zwischen zwei Aufgaben nicht
+           die Breite wechselt.
+           Hoehe: 10 Stangen (bei 100) + Fuenferluecke = 10.5u + 18px Fugen.
+           Breite: 10u Stange + 0.8u Abstand + 9u Einer = 19.8u - plus knapp
+           1u fuer den Jitter, der die Einerwuerfel im Mittel auseinander
+           statt zusammen schiebt und sich ueber neun Wuerfel aufsummiert.
+
+           Die Hoehe gilt fuer alle Stufen, damit die Gleichung beim Wechsel
+           der Aufgabenart nicht wandert. Die Breite nicht: in Z - Z kommen
+           nie Einer vor, da staende der halbe Kartenrand leer.             */
+        .stage {
+            position: relative;
+            width: calc(var(--u) * 21);
+            height: calc(var(--u) * 10.9 + 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.tens-only .stage { width: calc(var(--u) * 10); }
+
+        /* Einer liegen rechts neben den Zehnern, auf Hoehe der untersten
+           Stange - so wie im Schulheft. Bewusste Abweichung: dort sitzen sie
+           an der obersten Stange. Unten liegt alles Weggenommene zusammen in
+           derselben Ecke statt in zwei gegenueberliegenden. */
+        .material {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            gap: calc(var(--u) * 0.8);
+        }
+
+        /* ---------- Dienes-Material ---------- */
+
+        .rods {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Luecke nach der 5. Stange (Kraft der Fuenf) */
+        .rods .rod:nth-child(6) {
+            margin-top: calc(var(--u) * 0.5);
+        }
+
+        .rod, .cube {
+            background-color: var(--wood);
+            border: 1.5px solid var(--edge);
+            border-radius: 4px;
+            box-sizing: border-box;
+            box-shadow: inset 0 calc(var(--u) * 0.18) 0 rgba(255,255,255,0.55);
+            /* Das Abblenden nach dem Strich und das spaetere Wegschieben
+               laufen beide ueber diese eine Deklaration. */
+            transition: opacity 260ms ease,
+                        transform 520ms cubic-bezier(0.5, 0, 0.85, 0.4);
+        }
+
+        .rod {
+            width: calc(var(--u) * 10);
+            height: var(--u);
+            background-image: repeating-linear-gradient(
+                to right,
+                var(--line) 0 1.5px,
+                transparent 1.5px var(--u)
+            );
+        }
+
+        .cube {
+            width: var(--u);
+            height: var(--u);
+            flex: 0 0 auto;
+            /* Der Jitter steckt in Custom Properties statt direkt im inline
+               transform: sonst koennte das Wegschieben ihn nicht ueberlagern,
+               weil inline immer gewinnt. */
+            transform: rotate(var(--rot, 0deg))
+                       translateY(calc(var(--u) * var(--drop, 0)));
+        }
+
+        /* Einerwuerfel liegen leicht unordentlich aneinander */
+        .ones {
+            display: flex;
+            align-items: flex-end;
+            height: var(--u);
+        }
+
+        /* Durchgestrichenes Material tritt zurueck, bleibt aber zaehlbar. */
+        .rod.struck, .cube.struck { opacity: 0.45; }
+
+        /* Beim Aufloesen weggeschoben: erst hier verschwindet die Menge
+           wirklich. Vorher waeren zwei getrennte Haufen genau das Bild der
+           Additionsseite - gleiche Anordnung, gegenteilige Bedeutung. */
+        .rod.gone {
+            opacity: 0;
+            transform: translate(calc(var(--u) * 2.4), calc(var(--u) * 0.7))
+                       rotate(4deg);
+        }
+
+        .cube.gone {
+            opacity: 0;
+            transform: rotate(calc(var(--rot, 0deg) + 6deg))
+                       translate(calc(var(--u) * 2.4), calc(var(--u) * 0.9));
+        }
+
+        /* ---------- Streichen ---------- */
+
+        /* width/height muessen ausgeschrieben sein: ein SVG ist ein ersetztes
+           Element und bleibt mit inset:0 allein auf seinen 300x150 stehen. */
+        .strokes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Der Strich laeuft an beiden Enden ueber die Holzkante hinaus. */
+            overflow: visible;
+            pointer-events: none;
+            transition: opacity 250ms ease;
+        }
+
+        .strokes line {
+            stroke: var(--strike);
+            stroke-linecap: round;
+            fill: none;
+        }
+
+        .strokes.gone { opacity: 0; }
+
+        /* ---------- Gleichung ---------- */
+
+        .equation {
+            margin-top: calc(var(--u) * 0.6);
+            font-size: calc(var(--u) * 1.9);
+            font-weight: 500;
+            color: var(--ink);
+            display: flex;
+            align-items: baseline;
+            gap: calc(var(--u) * 0.5);
+            white-space: nowrap;
+        }
+
+        .equation .slot {
+            display: inline-block;
+            min-width: calc(var(--u) * 3.2);
+            text-align: center;
+            border-bottom: 4px solid #444;
+            padding: 0 calc(var(--u) * 0.2);
+            line-height: 1.1;
+            /* Vorgegebene Zahlen gehoeren zur Aufgabenstellung: schwarz. */
+            color: var(--ink);
+            font-weight: 500;
+        }
+
+        /* Aufgedeckte Zahlen blau und fett, klar abgesetzt von der Vorgabe. */
+        .equation .slot.solved {
+            color: var(--blue);
+            font-weight: 700;
+        }
+
+        .equation .slot:empty::before {
+            content: '\00a0';
+        }
+
+        .footer-hint {
+            margin-top: 18px;
+            font-size: 16px;
+            color: #aaa;
+            background: rgba(0,0,0,0.03);
+            padding: 8px 20px;
+            border-radius: 20px;
+            max-width: 96vw;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Jede Gruppe bleibt am Stueck. Muss die Zeile doch einmal umbrechen,
+           rutscht eine ganze Gruppe nach unten und nie ein einzelnes Wort. */
+        .footer-hint .hint-group { white-space: nowrap; }
+        .footer-hint .hint-sep { margin: 0 6px; color: #ccc; }
+        .footer-hint b { color: #888; }
+
+        .fade-in { animation: fadeIn 0.35s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="title-pill">Minus mit Dienes-Material</div>
+
+        <div class="stage" id="stage"></div>
+
+        <div class="equation">
+            <span class="slot" id="slot-m"></span>
+            <span>&minus;</span>
+            <span class="slot" id="slot-s"></span>
+            <span>=</span>
+            <span class="slot" id="slot-diff"></span>
+        </div>
+    </div>
+
+    <div class="footer-hint">
+        <span class="hint-group"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&uarr;</b> Aufgabenart: <span id="level-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&darr;</b> Weggenommenes: <span id="vanish-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&larr;</b> Vorgabe: <span id="prefill-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>W</b> Streichen wiederholen</span>
+    </div>
+
+    <script>
+    /* ------------------------------------------------------------------
+       Schwierigkeitsstufen (Pfeil nach oben schaltet rotierend durch)
+
+       Alle drei Stufen kommen ohne Entbuendeln aus: es werden nie mehr Einer
+       weggenommen, als dalagen. 34 - 18 braucht ein anderes Bild und gehoert
+       auf eine eigene Seite.
+       ------------------------------------------------------------------ */
+
+    const LEVELS = [
+        {
+            id: 'z-minus-z',
+            name: 'Z − Z',
+            hasOnes: false,
+            pairs() {
+                // Zehnerzahl minus Zehnerzahl, Rest mindestens 10 - bei 0
+                // bliebe ein leeres Bild stehen.
+                const list = [];
+                for (let m = 20; m <= 100; m += 10) {
+                    for (let s = 10; s <= m - 10; s += 10) list.push({ m: m, s: s });
+                }
+                return list;
+            }
+        },
+        {
+            id: 'ze-minus-e',
+            name: 'ZE − E',
+            hasOnes: true,
+            pairs() {
+                // Nur Einer werden weggenommen, hoechstens alle.
+                const list = [];
+                for (let tens = 1; tens <= 9; tens++) {
+                    for (let ones = 1; ones <= 9; ones++) {
+                        for (let s = 1; s <= ones; s++) {
+                            list.push({ m: tens * 10 + ones, s: s });
+                        }
+                    }
+                }
+                return list;
+            }
+        },
+        {
+            id: 'ze-minus-ze',
+            name: 'ZE − ZE (alle E weg)',
+            hasOnes: true,
+            pairs() {
+                // Alle Einer und einige Zehner; der Rest ist eine Zehnerzahl.
+                const list = [];
+                for (let tens = 2; tens <= 9; tens++) {
+                    for (let ones = 1; ones <= 9; ones++) {
+                        for (let sTens = 1; sTens <= tens - 1; sTens++) {
+                            list.push({ m: tens * 10 + ones, s: sTens * 10 + ones });
+                        }
+                    }
+                }
+                return list;
+            }
+        }
+    ];
+
+    /* Wie viele Zahlen stehen schon in der Gleichung, bevor aufgeloest wird?
+       Pfeil nach links schaltet rotierend durch. Bei "erste Zahl" muessen die
+       Kinder den Subtrahenden am Strich ablesen. */
+    const PREFILLS = [
+        { count: 1, name: 'erste Zahl' },
+        { count: 2, name: 'beide Zahlen' },
+        { count: 0, name: 'keine Zahl' }
+    ];
+
+    /* Zeitplan des Streichens in ms. Erst sieht man die ganze Menge, dann
+       faellt der Strich - zuerst ueber die Einer, dann ueber die Zehner, in
+       der Reihenfolge, in der die Kinder rechnen. */
+    const T_START    = 350;
+    const T_ONES_DUR = 280;
+    const T_PAUSE    = 120;
+    const T_TENS_DUR = 450;
+
+    /* ------------------------------------------------------------------
+       Aufgabenauswahl
+
+       Gezogen wird der Minuend, nicht das Ergebnis - und kleine Minuenden
+       liegen mehrfach im Beutel.
+
+       Warum nicht wie auf der Additionsseite ueber das Ergebnis: dort ist die
+       Summe die groesste Zahl der Aufgabe, hier ist es der Minuend. Ein
+       gleichverteilt gezogenes Ergebnis erzwingt deshalb einen grossen
+       Minuenden - gemessen im Mittel 80.0 bei Z - Z und 77.5 bei ZE - ZE,
+       also fast nur Aufgaben aus dem oberen Drittel. Selbst voellig
+       gleichverteilt ueber alle Aufgaben waeren es noch 73.3 gewesen, weil
+       ein grosser Minuend einfach mehr Subtrahenden zulaesst.
+
+       Zieht man stattdessen den Minuenden gleichverteilt, sind es 60.0 - und
+       tiefer geht es nur, wenn kleine Minuenden bewusst oefter drankommen.
+       Genau das macht MINUEND_SKEW.
+       ------------------------------------------------------------------ */
+
+    /* Der Beutel enthaelt jeden Minuenden mehrfach: den groesstmoeglichen
+       BAG_ZETTEL-mal, den kleinstmoeglichen MINUEND_SKEW-mal so oft,
+       dazwischen linear.
+
+       Warum BAG_ZETTEL nicht einfach 1 ist: sonst rundet die Rampe zur
+       Treppe und die halbe Zahlenreihe bekaeme dasselbe Gewicht.
+
+       MAX_JE_AUFGABE deckelt: kein Minuend bekommt mehr als so viele Zettel
+       je *verschiedener* Aufgabe, die er hergibt. Ohne diese Deckelung waere
+       in Z - Z jede sechste Aufgabe 20 - 10 - die 20 traegt dort das hoechste
+       Gewicht und kennt genau eine einzige Zerlegung. Die drei Werte sind
+       gegeneinander abgewogen; gemessen ueber alle Aufgaben ergibt das
+
+           Z - Z          Minuend im Mittel 54.5 (vorher 80.0)
+           ZE - E         Minuend im Mittel 46.8 (vorher 57.0)
+           ZE - ZE        Minuend im Mittel 56.0 (vorher 77.5)
+
+       bei hoechstens 7.7 % fuer eine einzelne Aufgabe (20 - 10). Viel tiefer
+       geht der Mittelwert bei Z - Z nicht: dort gibt es nur neun Minuenden,
+       und die kleinen tragen zu wenige Aufgaben, um oefter drankommen zu
+       koennen, ohne sich zu wiederholen. */
+    const BAG_ZETTEL     = 6;
+    const MINUEND_SKEW   = 4;
+    const MAX_JE_AUFGABE = 9;
+
+    function shuffle(list) {
+        for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+        }
+        return list;
+    }
+
+    LEVELS.forEach((level) => {
+        level.byMinuend = new Map();
+        level.pairs().forEach((pair) => {
+            if (!level.byMinuend.has(pair.m)) level.byMinuend.set(pair.m, []);
+            level.byMinuend.get(pair.m).push(pair.s);
+        });
+
+        const minuends = Array.from(level.byMinuend.keys());
+        const lo = Math.min.apply(null, minuends);
+        const hi = Math.max.apply(null, minuends);
+
+        // Beutelinhalt: jeder Minuend so oft, wie sein Gewicht sagt.
+        level.bagSource = [];
+        minuends.forEach((m) => {
+            const ramp = 1 + (MINUEND_SKEW - 1) * (hi - m) / (hi - lo);
+            const times = Math.max(1, Math.min(
+                Math.round(BAG_ZETTEL * ramp),
+                MAX_JE_AUFGABE * level.byMinuend.get(m).length));
+            for (let i = 0; i < times; i++) level.bagSource.push(m);
+        });
+        level.bag = [];
+    });
+
+    function drawTask(level, previous) {
+        if (level.bag.length === 0) level.bag = shuffle(level.bagSource.slice());
+
+        // Derselbe Minuend zweimal hintereinander faellt auf - dann lieber den
+        // vorletzten aus dem Beutel nehmen. Nach dem Neufuellen greift dieselbe
+        // Regel, der Beutelwechsel braucht also keinen Sonderfall.
+        let idx = level.bag.length - 1;
+        if (previous && level.bag.length > 1 && level.bag[idx] === previous.m) idx--;
+        const m = level.bag.splice(idx, 1)[0];
+
+        const options = level.byMinuend.get(m);
+        let s = options[Math.floor(Math.random() * options.length)];
+        if (previous && options.length > 1 && m === previous.m && s === previous.s) {
+            s = options[Math.floor(Math.random() * options.length)];
+        }
+        return { m: m, s: s };
+    }
+
+    /* ------------------------------------------------------------------
+       Dienes-Material zeichnen
+       ------------------------------------------------------------------ */
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    function el(tag, className) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        return node;
+    }
+
+    const stage = document.getElementById('stage');
+
+    // Alles, was das aktuelle Bild ausmacht. Wird bei jeder Aufgabe ersetzt.
+    let scene = null;
+
+    function renderTask(task) {
+        // Laufende Timer der vorigen Aufgabe abraeumen. Sie wuerden zwar nur
+        // noch auf abgehaengte Elemente zeigen, aber beim Durchklicken sammeln
+        // sich sonst Dutzende an.
+        if (scene) scene.timers.forEach(clearTimeout);
+
+        const tens  = Math.floor(task.m / 10);
+        const ones  = task.m % 10;
+        const sTens = Math.floor(task.s / 10);
+        const sOnes = task.s % 10;
+
+        const material = el('div', 'material fade-in');
+        const rodEls = [];
+        const cubeEls = [];
+
+        const rods = el('div', 'rods');
+        for (let i = 0; i < tens; i++) {
+            const rod = el('div', 'rod');
+            rods.appendChild(rod);
+            rodEls.push(rod);
+        }
+        material.appendChild(rods);
+
+        if (ones > 0) {
+            const row = el('div', 'ones');
+            for (let i = 0; i < ones; i++) {
+                const cube = el('div', 'cube');
+                // leicht unperfekt aneinandergelegt
+                cube.style.setProperty('--rot', (Math.random() * 6 - 3).toFixed(2) + 'deg');
+                cube.style.setProperty('--drop', (Math.random() * 0.12).toFixed(3));
+                const shift = (Math.random() * 0.16 - 0.05).toFixed(3);
+                cube.style.marginLeft = (i === 0 ? '0' : 'calc(var(--u) * ' + shift + ')');
+                row.appendChild(cube);
+                cubeEls.push(cube);
+            }
+            material.appendChild(row);
+        }
+
+        const strokes = document.createElementNS(SVG_NS, 'svg');
+        strokes.setAttribute('class', 'strokes');
+        material.appendChild(strokes);
+
+        stage.innerHTML = '';
+        stage.appendChild(material);
+
+        scene = {
+            material: material,
+            strokes: strokes,
+            // Weggenommen wird von unten und von rechts: zuletzt gelegt,
+            // zuerst genommen.
+            removedRods:  rodEls.slice(tens - sTens),
+            removedCubes: cubeEls.slice(ones - sOnes),
+            unit: rodEls[0].getBoundingClientRect().height,
+            timers: [],
+            gone: false
+        };
+
+        sizeWatch.disconnect();
+        sizeWatch.observe(material);
+
+        playStrokes();
+    }
+
+    /* ------------------------------------------------------------------
+       Streichen
+
+       Ein Strich pro Materialgruppe, gezogen ueber die Diagonale des
+       weggenommenen Blocks: von oben links nach unten rechts. Bei einer
+       einzelnen Stange ergibt das automatisch einen fast waagerechten Strich,
+       bei sieben Stangen einen steilen - eine Regel, kein Sonderfall.
+       ------------------------------------------------------------------ */
+
+    /* Umschliessendes Rechteck mehrerer Elemente, relativ zum Materialkasten.
+       Gemessen statt gerechnet, weil Fugen, Rahmen, die Fuenferluecke und der
+       Jitter der Einerwuerfel sonst alle einzeln nachgebaut werden muessten. */
+    function unionBox(nodes) {
+        const base = scene.material.getBoundingClientRect();
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        nodes.forEach((node) => {
+            const r = node.getBoundingClientRect();
+            x0 = Math.min(x0, r.left   - base.left);
+            y0 = Math.min(y0, r.top    - base.top);
+            x1 = Math.max(x1, r.right  - base.left);
+            y1 = Math.max(y1, r.bottom - base.top);
+        });
+        return { x0: x0, y0: y0, x1: x1, y1: y1 };
+    }
+
+    /* Setzt die Endpunkte und liefert die Strichlaenge. Der Strich laeuft an
+       beiden Enden ueber die Holzkante hinaus - ein Stiftstrich hoert nicht
+       genau an der Ecke auf, und der Ueberstand zeigt, dass durchgestrichen
+       und nicht eingezeichnet wurde. */
+    function placeStroke(line, box) {
+        const over = scene.unit * 0.25;
+        const dx = box.x1 - box.x0;
+        const dy = box.y1 - box.y0;
+        const len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+
+        line.setAttribute('x1', box.x0 - ux * over);
+        line.setAttribute('y1', box.y0 - uy * over);
+        line.setAttribute('x2', box.x1 + ux * over);
+        line.setAttribute('y2', box.y1 + uy * over);
+        line.setAttribute('stroke-width', scene.unit * 0.15);
+
+        return len + 2 * over;
+    }
+
+    /* Welche Gruppen bekommen einen Strich, in welcher Reihenfolge? */
+    function strokeGroups() {
+        const groups = [];
+        if (scene.removedCubes.length > 0) {
+            groups.push({ nodes: scene.removedCubes, dur: T_ONES_DUR });
+        }
+        if (scene.removedRods.length > 0) {
+            groups.push({ nodes: scene.removedRods, dur: T_TENS_DUR });
+        }
+        return groups;
+    }
+
+    /* Setzt alle vorhandenen Striche neu auf das gemessene Material.
+       Ein schon fertig gezogener Strich bleibt gezogen. */
+    function layoutStrokes() {
+        if (!scene) return;
+        const rod = scene.material.querySelector('.rod');
+        if (rod) scene.unit = rod.getBoundingClientRect().height;
+
+        const groups = strokeGroups();
+        scene.strokes.querySelectorAll('line').forEach((line, i) => {
+            if (!groups[i]) return;
+            const drawn = parseFloat(line.style.strokeDashoffset) === 0;
+            const len = placeStroke(line, unionBox(groups[i].nodes));
+            line.style.strokeDasharray = len;
+            if (!drawn) line.style.strokeDashoffset = len;
+        });
+    }
+
+    function playStrokes() {
+        if (!scene || scene.gone) return;
+
+        scene.timers.forEach(clearTimeout);
+        scene.timers = [];
+        scene.strokes.innerHTML = '';
+        scene.strokes.classList.remove('gone');
+        scene.removedRods.forEach((n) => n.classList.remove('struck'));
+        scene.removedCubes.forEach((n) => n.classList.remove('struck'));
+
+        let at = T_START;
+        strokeGroups().forEach((group) => {
+            const line = document.createElementNS(SVG_NS, 'line');
+            const len = placeStroke(line, unionBox(group.nodes));
+
+            line.style.strokeDasharray = len;
+            line.style.strokeDashoffset = len;
+            line.style.transition = 'stroke-dashoffset ' + group.dur +
+                                    'ms cubic-bezier(0.3, 0.7, 0.4, 1)';
+            scene.strokes.appendChild(line);
+
+            const delay = at;
+            scene.timers.push(setTimeout(() => {
+                line.style.strokeDashoffset = 0;
+            }, delay));
+            scene.timers.push(setTimeout(() => {
+                group.nodes.forEach((n) => n.classList.add('struck'));
+            }, delay + group.dur));
+
+            at += group.dur + T_PAUSE;
+        });
+    }
+
+    /* --u haengt an vmin: sobald das Fenster sich aendert (Beamer angesteckt,
+       Vollbild), stimmen die gemessenen Koordinaten nicht mehr.
+       ResizeObserver statt window.onresize, weil er auch dann anschlaegt,
+       wenn sich das Material ohne Fensteraenderung neu umbricht - und weil er
+       den ersten Messzeitpunkt gleich mit absichert. */
+    const sizeWatch = new ResizeObserver(() => {
+        if (scene && !scene.gone) layoutStrokes();
+    });
+
+    /* ------------------------------------------------------------------
+       Ablauf
+       ------------------------------------------------------------------ */
+
+    let levelIndex = 0;
+    let prefillIndex = 0;
+    let vanish = true;
+    let stepwise = false;
+    let currentTask = null;
+
+    // Reihenfolge, in der schrittweise aufgedeckt wird.
+    const REVEAL_ORDER = ['m', 's', 'diff'];
+
+    // Welche Platzhalter sind bereits aufgedeckt (blau)? Vorgegebene Zahlen
+    // stehen hier nicht drin, die kommen aus der Vorgabe-Stufe.
+    let revealed = new Set();
+
+    const slots = {
+        m:    document.getElementById('slot-m'),
+        s:    document.getElementById('slot-s'),
+        diff: document.getElementById('slot-diff')
+    };
+    const levelLabel   = document.getElementById('level-label');
+    const vanishLabel  = document.getElementById('vanish-label');
+    const prefillLabel = document.getElementById('prefill-label');
+    const revealLabel  = document.getElementById('reveal-label');
+
+    function taskValues() {
+        return {
+            m:    String(currentTask.m),
+            s:    String(currentTask.s),
+            diff: String(currentTask.m - currentTask.s)
+        };
+    }
+
+    /* Welche Platzhalter sind durch die Vorgabe-Stufe schon gefuellt? */
+    function givenSlots() {
+        const count = PREFILLS[prefillIndex].count;
+        return { m: count >= 1, s: count >= 2, diff: false };
+    }
+
+    /* Zeichnet die Gleichung neu: vorgegebene Zahlen schwarz, bereits
+       aufgedeckte blau, der Rest leer. */
+    function renderSlots() {
+        const values = taskValues();
+        const given = givenSlots();
+
+        for (const key in slots) {
+            const show = given[key] || revealed.has(key);
+            slots[key].textContent = show ? values[key] : '';
+            slots[key].classList.remove('fade-in');
+            slots[key].classList.toggle('solved', show && !given[key]);
+        }
+    }
+
+    /* Noch leere Platzhalter in Aufdeckreihenfolge. Entscheidend ist der
+       tatsaechliche Zustand, nicht die Zahl der Tastendruecke - deshalb
+       stimmt die Anzahl der Schritte bei jeder Vorgabe-Stufe automatisch. */
+    function openSlots() {
+        const given = givenSlots();
+        return REVEAL_ORDER.filter((key) => !given[key] && !revealed.has(key));
+    }
+
+    function fillSlot(key) {
+        slots[key].textContent = taskValues()[key];
+        slots[key].classList.add('solved');
+        void slots[key].offsetWidth;
+        slots[key].classList.add('fade-in');
+        revealed.add(key);
+    }
+
+    /* Sobald das Ergebnis steht, darf das Weggestrichene wirklich gehen. Was
+       stehenbleibt, bewegt sich nicht: der Rest ist die Loesung und soll
+       genau dort liegenbleiben, wo er die ganze Zeit lag. */
+    function takeAway() {
+        if (!scene || scene.gone) return;
+        scene.gone = true;
+        scene.timers.forEach(clearTimeout);
+        scene.timers = [];
+        scene.strokes.classList.add('gone');
+        scene.removedRods.forEach((n) => n.classList.add('gone'));
+        scene.removedCubes.forEach((n) => n.classList.add('gone'));
+    }
+
+    function newTask() {
+        currentTask = drawTask(LEVELS[levelIndex], currentTask);
+        renderTask(currentTask);
+        revealed = new Set();
+        renderSlots();
+    }
+
+    /* Ein Druck auf Pfeil nach rechts: schrittweise nur der naechste leere
+       Platzhalter, sonst alle auf einmal. Schon sichtbare Zahlen werden nie
+       neu gesetzt, damit das Tafelbild nicht springt. */
+    function reveal() {
+        const open = openSlots();
+        if (open.length === 0) return;
+        const now = stepwise ? open.slice(0, 1) : open;
+        now.forEach(fillSlot);
+        if (vanish && now.indexOf('diff') !== -1) takeAway();
+    }
+
+    function applyLevel() {
+        const level = LEVELS[levelIndex];
+        document.body.classList.toggle('tens-only', !level.hasOnes);
+        levelLabel.textContent = level.name;
+    }
+
+    function updateVanishLabel() {
+        vanishLabel.textContent = vanish ? 'verschwindet beim Auflösen'
+                                         : 'bleibt liegen';
+    }
+
+    function updatePrefillLabel() {
+        prefillLabel.textContent = PREFILLS[prefillIndex].name;
+    }
+
+    function updateRevealLabel() {
+        revealLabel.textContent = stepwise ? 'schrittweise' : 'alles auf einmal';
+    }
+
+    window.addEventListener('keydown', (e) => {
+        // Die Leertaste wirkt wie Pfeil nach rechts: Sie ist der reflexhafte
+        // Weiter-Knopf und der Vorwaertsknopf vieler Praesentationsfernbedienungen.
+        const forward = e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar';
+
+        if (forward) {
+            e.preventDefault();
+            if (openSlots().length === 0) newTask();
+            else reveal();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            levelIndex = (levelIndex + 1) % LEVELS.length;
+            applyLevel();
+            currentTask = null;
+            newTask();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Nur die Betriebsart umschalten, die Aufgabe bleibt stehen.
+            vanish = !vanish;
+            updateVanishLabel();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            // Vorgabe umschalten; die Aufgabe bleibt stehen. Was schon
+            // aufgedeckt war, bleibt sichtbar und wechselt nur die Farbe.
+            prefillIndex = (prefillIndex + 1) % PREFILLS.length;
+            updatePrefillLabel();
+            renderSlots();
+        } else if (e.key.toLowerCase() === 's') {
+            // Buchstabe statt Sondertaste: Auf iPad-Huellentastaturen sitzen
+            // gerade die Sondertasten an ungewohnten Stellen.
+            e.preventDefault();
+            stepwise = !stepwise;
+            updateRevealLabel();
+        } else if (e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            playStrokes();
+        }
+    });
+
+    applyLevel();
+    updateVanishLabel();
+    updatePrefillLabel();
+    updateRevealLabel();
+    newTask();
+    </script>
+</body>
+</html>

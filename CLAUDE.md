@@ -152,6 +152,60 @@ schwarzen Aufgabenstellung. Zahlen und Beschriftungen fast reines Schwarz
 (`#4f8edc` / `#4a9fd4`) mit Rot als Gegenfarbe — das ist gewachsen und darf so
 bleiben; für Neues das Standardblau nehmen.
 
+### Dienes-Material
+
+Einer liegen **rechts neben den Zehnerstangen**, auf Höhe der untersten Stange,
+so wie im *Denken & Rechnen*-Heft. Fünferlücke nach der fünften Stange.
+
+> **Nachrüstbedarf:** `Dienes-Addition-ZR100` legt die Einer noch in eine Zeile
+> **unter** den Stangenblock. Neue Seiten machen es wie
+> `Dienes-Subtraktion-ZR100`.
+
+Wegnehmen wird **durchgestrichen, nicht mit einer Hand angedeutet**. Ein
+dunkelroter Strich (`#c62828`) pro Materialgruppe, gezogen über die Diagonale
+des weggenommenen Blocks von oben links nach unten rechts, runde Enden, an
+beiden Enden 0,25 u über die Holzkante hinaus. Bei einer einzelnen Stange ergibt
+diese Regel automatisch einen fast waagerechten Strich, bei sieben einen
+steilen — ein Sonderfall weniger. Danach sinkt das durchgestrichene Material auf
+45 % Deckkraft: durchgestrichen heißt zurückgetreten, nicht unsichtbar, denn
+gezählt werden muss es noch.
+
+Gründe gegen die ausgeschnittene Hand aus dem Heft: sie greift dort drei bis
+vier Stangen und lässt sich nicht auf sieben strecken, für Einerwürfel gibt es
+gar keine passende Haltung, ein Raster-PNG ist am Beamer flau, und die Seiten
+sollen assetfrei bleiben.
+
+**Zwei getrennt liegende Materialgruppen bedeuten immer Addition.** Deshalb
+wird beim Minus nichts zur Seite geschoben, solange die Aufgabe noch offen ist —
+sonst zeigt das Bild zu `34 − 20` genau das Bild zu `14 + 20`. Erst beim
+Auflösen darf das Weggestrichene wegrutschen; was übrig bleibt, bewegt sich
+dabei nicht, denn der Rest **ist** die Lösung.
+
+### Aufgabenverteilung
+
+Zufällige Aufgaben werden **nicht gleichverteilt über alle Aufgaben** gezogen,
+sondern über einen Beutel ohne Zurücklegen. Wonach der Beutel sortiert ist,
+hängt von der Rechenart ab — und das ist keine Kleinigkeit:
+
+- **Plus** zieht das **Ergebnis** gleichverteilt und dann eine seiner
+  Zerlegungen. Sonst bekommen Ergebnisse mit vielen Zerlegungen zu viel
+  Gewicht (100 hat neun, 20 hat eine).
+- **Minus** zieht den **Minuenden**. Denselben Trick wie bei Plus zu nehmen
+  wäre falsch herum: beim Minus ist der Minuend die größte Zahl der Aufgabe,
+  ein gleichverteiltes Ergebnis erzwingt also einen großen Minuenden. Gemessen
+  lag der Minuend dadurch im Mittel bei **80** (Z − Z) und **77,5** (ZE − ZE) —
+  fast nur Aufgaben aus dem oberen Drittel.
+
+**Merksatz: gleichverteilt gehört die Zahl, die in der Aufgabe die größte sein
+kann — nicht die, die das Kind sagt.**
+
+Zusätzlich liegen kleine Minuenden mehrfach im Beutel, sonst bleibt der
+Mittelwert am Mittelpunkt des Zahlenbereichs hängen. Dabei braucht es eine
+Deckelung: ein Minuend mit nur einer möglichen Zerlegung würde seine eine
+Aufgabe sonst ständig wiederholen (`20 − 10` in jeder sechsten Aufgabe).
+Umsetzung mit den drei abgewogenen Konstanten in
+`Dienes-Subtraktion-ZR100/index.html`.
+
 ### Animationen
 
 Zustandswechsel dürfen animiert werden, wenn sie das Verstehen unterstützen.
@@ -168,6 +222,7 @@ statt neu zu zeichnen — sonst läuft keine Transition.
 | `Zahlenstrahl-ZR100` | Zahl am Zahlenstrahl verorten (ZR 100) |
 | `Dienes-ZR100` | Dienes-Material, Zehner/Einer |
 | `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
+| `Dienes-Subtraktion-ZR100` | Minus mit Dienes-Material: Z − Z, ZE − E, ZE − ZE (ZR 100) |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
 | `Verliebte-Zahlen` | Zahlenzerlegung bis 10 |
