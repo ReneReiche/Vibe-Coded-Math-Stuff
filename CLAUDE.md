@@ -137,6 +137,33 @@ Text nennt die Tasten als Pfeilzeichen, z. B.:
 Zeigt eine Seite einen umschaltbaren Modus, gehört der **aktuelle Modusname**
 mit in die Fußzeile.
 
+### Credit-Zeile mit Claw'd — **Standard für jede Seite**
+
+Unter der Fußzeile steht eine noch kleinere, noch blassere Zeile, die die
+Beteiligten nennt, gefolgt vom Claw'd-Maskottchen als Pixelfigur:
+
+```
+Idee und Didaktik: René Reiche · Code: Claude (AI)  [Claw'd]
+```
+
+Wortlaut ist abgestimmt und bleibt so: „AI", nicht „KI"; „Claude", nicht
+„Claw'd" im Text; kein „Anthropic". Das Maskottchen ist ein Inline-SVG auf
+einem 12 × 9-Raster (Körper, zwei Scheren, vier Beine, zwei Augen), Farbe
+`#d97757`, Augen `#1a1a1a`, **36 × 27 px** — genau 3 px je Rasterfeld, damit
+es bei 100 % Zoom pixelscharf ist. **Kein** `shape-rendering="crispEdges"`:
+das rundet bei krummen Zoomstufen ein Auge auf 2 und das andere auf 3 px;
+mit Kantenglättung bleiben beide gleich breit.
+
+```css
+.credit { margin-top: 8px; font-size: 11px; color: #bbb; text-align: center;
+          display: flex; align-items: center; gap: 6px; }
+.credit .mascot { width: 36px; height: 27px; opacity: 0.85; }
+```
+
+Markup und SVG zum Kopieren: `Ergaenzen-Hunderterfeld-ZR100/index.html`
+(erste Seite mit dieser Zeile). Ältere Seiten haben sie noch nicht —
+Nachrüstbedarf, kein Gegenbeispiel.
+
 ### Farben
 
 ```css
@@ -181,6 +208,25 @@ sonst zeigt das Bild zu `34 − 20` genau das Bild zu `14 + 20`. Erst beim
 Auflösen darf das Weggestrichene wegrutschen; was übrig bleibt, bewegt sich
 dabei nicht, denn der Rest **ist** die Lösung.
 
+### Hunderterfeld
+
+Zehn mal zehn Kästchen mit dünnen grauen Linien; nach der fünften Spalte und
+der fünften Zeile eine dicke Linie, die wie im *Denken & Rechnen*-Heft ein
+Stück über den Rand hinausragt (Kraft der Fünf). Gefüllt wird **zeilenweise
+von links oben.**
+
+Im Feld liegt **Dienes-Material, keine Wendeplättchen**: Jede volle Zeile ist
+**eine Zehnerstange** (ein Stück mit schwacher Kästchenteilung), nur der
+Rest sind einzelne **Einerwürfel** mit dunkler Kante. Ein Würfel pro Kästchen
+über das ganze Feld wurde ausdrücklich abgelehnt.
+
+Die Startmenge steht **sofort**, ohne Animation. Nur das Ergänzte wird
+animiert, und zwar in der Reihenfolge, in der die Kinder rechnen: **erst
+Einer bis zum vollen Zehner, dann ganze Zehnerstangen, zuletzt die
+restlichen Einer** (46 + _ = 83: vier Würfel, drei Stangen, drei Würfel).
+Ergänztes Material ist blau wie die aufgedeckte Zahl. Referenz:
+`Ergaenzen-Hunderterfeld-ZR100/index.html`.
+
 ### Aufgabenverteilung
 
 Zufällige Aufgaben werden **nicht gleichverteilt über alle Aufgaben** gezogen,
@@ -223,6 +269,7 @@ statt neu zu zeichnen — sonst läuft keine Transition.
 | `Dienes-ZR100` | Dienes-Material, Zehner/Einer |
 | `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
 | `Dienes-Subtraktion-ZR100` | Minus mit Dienes-Material: Z − Z, ZE − E, ZE − ZE (ZR 100) |
+| `Ergaenzen-Hunderterfeld-ZR100` | Ergänzen auf dem Hunderterfeld, vier Stufen per `↓` (nächster Zehner, im selben Zehner, höherer Zehner, beliebige Zahl); `↑` nur symbolisch |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
 | `Verliebte-Zahlen` | Zahlenzerlegung bis 10 |

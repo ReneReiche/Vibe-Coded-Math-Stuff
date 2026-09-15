@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ergänzen auf dem Hunderterfeld (ZR 100)</title>
+    <style>
+        :root {
+            --blue: #2196F3;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --ink: #0d0d0d;
+
+            /* Hunderterfeld */
+            --grid-line: #9a9a9a;      /* duenne Kaestchenlinien */
+            --five-line: #3a3a3a;      /* dicke Fuenferlinien (Kraft der Fuenf) */
+            --wood: #f6e2b8;           /* Holzfarbe des Dienes-Materials */
+            --wood-edge: #c99a4a;
+            --add: var(--blue);        /* ergaenztes Material = Loesung = blau */
+            --add-edge: #1565c0;
+
+            /* Grundeinheit fuer Schrift und Abstaende */
+            --u: clamp(14px, 4vmin, 48px);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-card {
+            position: relative;
+            background: var(--card-bg);
+            padding: 58px 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            /* Mindestbreite, damit die Pille auch ohne Feld in die Karte passt. */
+            min-width: min(560px, 92vw);
+        }
+
+        /* Pille auf der oberen Kartenkante: 30 % ragen heraus, 70 % liegen in
+           der Karte. Der erste translate-Wert muss -50 % bleiben (zentriert
+           waagerecht), nur der zweite regelt die Aufteilung aussen/innen. */
+        .title-pill {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            background: var(--blue);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 500;
+            padding: 10px 32px;
+            border-radius: 999px;
+            width: fit-content;
+            margin: 0;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px -2px rgba(33,150,243,0.4);
+        }
+
+        /* ---------- Hunderterfeld ----------
+           Quadratisch, an der Bildhoehe orientiert: Feld + Gleichung + Karte
+           muessen zusammen in 100vh passen, auch mit Lesezeichenleiste. */
+        .stage {
+            width: min(58vmin, 70vw);
+            height: min(58vmin, 70vw);
+        }
+
+        .stage svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            overflow: visible;
+        }
+
+        /* Dienes-Material: Zehnerstangen fuellen eine ganze Zeile, Einer
+           sind einzelne Wuerfel mit dunkler Kante. Das Ergaenzte erscheint
+           blau (Loesungsfarbe), die Startmenge liegt in Holz.
+           Nur Material mit .pop wird animiert: es waechst aus seiner Mitte
+           heraus mit leichtem Ueberschwingen; Versatz je Stueck inline. */
+        .piece {
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+        .piece.pop {
+            transform: scale(0);
+            transition: transform 320ms cubic-bezier(0.34, 1.5, 0.64, 1);
+        }
+        .piece.pop.in { transform: scale(1); }
+
+        .cube.start { fill: var(--wood); stroke: var(--wood-edge); }
+        .cube.add   { fill: var(--add);  stroke: var(--add-edge); }
+        .rod.start  { fill: url(#rod-start); stroke: var(--wood-edge); }
+        .rod.add    { fill: url(#rod-add);   stroke: var(--add-edge); }
+
+        /* Ohne Hunderterfeld: nur die Aufgabe, dafuer groesser. */
+        body.symbolic .stage { display: none; }
+        body.symbolic .equation {
+            font-size: min(calc(var(--u) * 3.4), 13vw);
+            margin: calc(var(--u) * 0.8) calc(var(--u) * 1.2);
+        }
+        body.symbolic .equation .slot { min-width: calc(var(--u) * 5.5); border-bottom-width: 6px; }
+
+        /* ---------- Gleichung ---------- */
+        .equation {
+            margin-top: calc(var(--u) * 0.7);
+            font-size: calc(var(--u) * 2.1);
+            font-weight: 500;
+            color: var(--ink);
+            display: flex;
+            align-items: baseline;
+            gap: calc(var(--u) * 0.55);
+            white-space: nowrap;
+        }
+
+        .equation .slot {
+            display: inline-block;
+            min-width: calc(var(--u) * 3.4);
+            text-align: center;
+            border-bottom: 4px solid #444;
+            padding: 0 calc(var(--u) * 0.2);
+            line-height: 1.1;
+        }
+
+        .equation .slot:empty::before { content: '\00a0'; }
+
+        /* Aufgedeckte Loesung: blau und fett, klar abgesetzt von der Vorgabe. */
+        .equation .slot.solved {
+            color: var(--blue);
+            font-weight: 700;
+            animation: fadeIn 0.35s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---------- Fusszeile ---------- */
+        .footer-hint {
+            margin-top: 18px;
+            font-size: 16px;
+            color: #aaa;
+            background: rgba(0,0,0,0.03);
+            padding: 8px 20px;
+            border-radius: 20px;
+            max-width: 96vw;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .footer-hint .hint-group { white-space: nowrap; }
+        .footer-hint .hint-sep { margin: 0 6px; color: #ccc; }
+        .footer-hint b { color: #888; }
+
+        .credit {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #bbb;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        /* 12 x 9 Rasterfelder zu je genau 3 CSS-Pixeln. Bei krummen Werten
+           liegen die Kanten zwischen zwei Pixeln und werden weich; mit
+           ganzen Pixeln je Feld ist die Figur bei 100 % Zoom pixelscharf. */
+        .credit .mascot { width: 36px; height: 27px; opacity: 0.85; }
+    </style>
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="title-pill">Ergänzen auf dem Hunderterfeld</div>
+
+        <div class="stage">
+            <svg id="field" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+
+        <div class="equation">
+            <span id="start"></span>
+            <span>+</span>
+            <span class="slot" id="slot"></span>
+            <span>=</span>
+            <span id="target"></span>
+        </div>
+    </div>
+
+    <div class="footer-hint">
+        <span class="hint-group"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&uarr;</b> Darstellung: <span id="mode-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&darr;</b> Erg&auml;nzen: <span id="level-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>W</b> Erg&auml;nzung noch einmal legen</span>
+    </div>
+    <div class="credit">
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude (AI)
+        <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
+             12 x 9-Raster: Koerper, zwei Scheren, vier Beine, zwei Augen.
+             Inline-SVG, damit die Seite assetfrei bleibt. Bewusst ohne
+             shape-rendering="crispEdges": das rundet jede Kante hart auf ganze
+             Pixel, und bei krummen Zoomstufen wird dann ein Auge 2 und das
+             andere 3 Pixel breit. Mit Kantenglaettung bleiben beide gleich. -->
+        <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
+            <g fill="#d97757">
+                <rect x="3" y="1" width="7" height="5"/>
+                <rect x="1" y="2" width="2" height="2"/>
+                <rect x="10" y="2" width="2" height="2"/>
+                <rect x="3" y="6" width="1" height="2"/>
+                <rect x="5" y="6" width="1" height="2"/>
+                <rect x="7" y="6" width="1" height="2"/>
+                <rect x="9" y="6" width="1" height="2"/>
+            </g>
+            <rect x="4" y="2" width="1" height="1" fill="#1a1a1a"/>
+            <rect x="8" y="2" width="1" height="1" fill="#1a1a1a"/>
+        </svg>
+    </div>
+
+    <script>
+    /* ------------------------------------------------------------------
+       Betriebsarten
+
+       Pfeil nach oben: Darstellung
+         0 = Hunderterfeld mit Dienes-Material (Bildebene)
+         1 = nur die Aufgabe (symbolische Ebene) - gilt auch beim Aufloesen,
+             dann erscheint nur die Zahl.
+
+       Pfeil nach unten: Schwierigkeit (rotierend), Zielzahl hoechstens 100
+         0 = zum naechsten vollen Zehner        46 + _ = 50
+         1 = zu einer ZE-Zahl im selben Zehner  46 + _ = 49   (E ungleich 0)
+         2 = zu einem hoeheren Zehner           46 + _ = 70   (nicht der naechste)
+         3 = zu einer beliebigen Zahl           46 + _ = 83
+       ------------------------------------------------------------------ */
+    const MODES = ['Hunderterfeld', 'nur Aufgabe'];
+
+    /* Jede Stufe nennt ihre moeglichen Startzahlen und liefert zu einer
+       Startzahl die Liste der erlaubten Zielzahlen. */
+    const LEVELS = [
+        {
+            name: 'zum nächsten Zehner',
+            starts: () => range(1, 99).filter((n) => n % 10 !== 0),
+            targets: (n) => [Math.ceil(n / 10) * 10]
+        },
+        {
+            name: 'im selben Zehner',
+            // 49, 59, ... haben im eigenen Zehner nichts mehr zu ergaenzen.
+            starts: () => range(1, 98).filter((n) => n % 10 !== 9),
+            targets: (n) => range(n + 1, Math.floor(n / 10) * 10 + 9)
+        },
+        {
+            name: 'zu einem höheren Zehner',
+            // Ab 90 gibt es ueber den naechsten Zehner (100) hinaus nichts mehr.
+            starts: () => range(1, 89),
+            targets: (n) => range(Math.floor(n / 10) * 10 + 20, 100).filter((t) => t % 10 === 0)
+        },
+        {
+            name: 'zu einer beliebigen Zahl',
+            starts: () => range(1, 99),
+            targets: (n) => range(n + 1, 100)
+        }
+    ];
+
+    let modeIndex = 0;
+    let levelIndex = 0;
+
+    /* ------------------------------------------------------------------
+       Aufgabenauswahl: Beutel ohne Zuruecklegen ueber die Startzahl, dann
+       eine zufaellige Zielzahl der Stufe. So kommt jede Startzahl gleich
+       oft dran; die Kinder sehen also nicht nur Aufgaben aus dem oberen
+       Drittel des Feldes.
+       ------------------------------------------------------------------ */
+    const bags = LEVELS.map(() => []);
+    let task = null;       // { n, add, target }
+    let revealed = false;
+
+    function range(a, b) {
+        const out = [];
+        for (let i = a; i <= b; i++) out.push(i);
+        return out;
+    }
+
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function drawStart() {
+        const bag = bags[levelIndex];
+        if (bag.length === 0) bag.push(...shuffle(LEVELS[levelIndex].starts()));
+        // Dieselbe Startzahl zweimal hintereinander faellt auf.
+        let idx = bag.length - 1;
+        if (task && bag.length > 1 && bag[idx] === task.n) idx--;
+        return bag.splice(idx, 1)[0];
+    }
+
+    function newTask() {
+        const n = drawStart();
+        const options = LEVELS[levelIndex].targets(n);
+        const target = options[Math.floor(Math.random() * options.length)];
+        task = { n: n, target: target, add: target - n };
+        revealed = false;
+        renderEquation();
+        renderField();
+    }
+
+    /* ------------------------------------------------------------------
+       Gleichung
+       ------------------------------------------------------------------ */
+    const slot = document.getElementById('slot');
+
+    function renderEquation() {
+        document.getElementById('start').textContent = task.n;
+        document.getElementById('target').textContent = task.target;
+        slot.classList.remove('solved');
+        slot.textContent = revealed ? task.add : '';
+        if (revealed) slot.classList.add('solved');
+    }
+
+    /* ------------------------------------------------------------------
+       Hunderterfeld
+
+       10 x 10 Kaestchen, dicke Linien nach der 5. Spalte und 5. Zeile, die
+       wie im Heft ein Stueck ueber den Rand hinausragen. Material liegt
+       zeilenweise von links oben: volle Zeilen als Zehnerstangen, der Rest
+       als Einerwuerfel.
+       ------------------------------------------------------------------ */
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.getElementById('field');
+    const CELL = 40;
+    const PAD = 22;                     // Ueberstand der Fuenferlinien
+    const SIZE = CELL * 10;
+    const INSET = 3.5;                  // Luft zwischen Material und Kaestchenrand
+    svg.setAttribute('viewBox', (-PAD) + ' ' + (-PAD) + ' ' + (SIZE + 2 * PAD) + ' ' + (SIZE + 2 * PAD));
+
+    function el(name, attrs) {
+        const e = document.createElementNS(NS, name);
+        for (const k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+    }
+
+    function drawGrid() {
+        const g = el('g', { id: 'grid' });
+        g.appendChild(el('rect', { x: 0, y: 0, width: SIZE, height: SIZE, fill: '#ffffff' }));
+        for (let i = 0; i <= 10; i++) {
+            const p = i * CELL;
+            g.appendChild(el('line', { x1: p, y1: 0, x2: p, y2: SIZE,
+                stroke: 'var(--grid-line)', 'stroke-width': 1.2 }));
+            g.appendChild(el('line', { x1: 0, y1: p, x2: SIZE, y2: p,
+                stroke: 'var(--grid-line)', 'stroke-width': 1.2 }));
+        }
+        // Kraft der Fuenf: dicke Linien, ueber den Rand hinaus
+        const mid = 5 * CELL;
+        g.appendChild(el('line', { x1: mid, y1: -PAD, x2: mid, y2: SIZE + PAD,
+            stroke: 'var(--five-line)', 'stroke-width': 3.5, 'stroke-linecap': 'round' }));
+        g.appendChild(el('line', { x1: -PAD, y1: mid, x2: SIZE + PAD, y2: mid,
+            stroke: 'var(--five-line)', 'stroke-width': 3.5, 'stroke-linecap': 'round' }));
+        // Aussenrand
+        g.appendChild(el('rect', { x: 0, y: 0, width: SIZE, height: SIZE,
+            fill: 'none', stroke: 'var(--five-line)', 'stroke-width': 2.5 }));
+        return g;
+    }
+
+    /* Zehnerstangen bekommen die Kaestchenteilung als Fuellmuster: je eine
+       schmale Linie an jeder Kaestchengrenze, damit man die zehn Einer in
+       der Stange noch sieht, sie aber trotzdem als ein Stueck gelesen wird.
+       Zwei halbe Linien an den Kachelraendern ergeben zusammen eine ganze. */
+    function rodPattern(id, fill, line) {
+        const p = el('pattern', { id: id, patternUnits: 'userSpaceOnUse', width: CELL, height: CELL });
+        p.appendChild(el('rect', { x: 0, y: 0, width: CELL, height: CELL, fill: fill }));
+        p.appendChild(el('rect', { x: 0, y: 0, width: 0.75, height: CELL, fill: line }));
+        p.appendChild(el('rect', { x: CELL - 0.75, y: 0, width: 0.75, height: CELL, fill: line }));
+        return p;
+    }
+
+    const defs = el('defs', {});
+    defs.appendChild(rodPattern('rod-start', 'var(--wood)', 'rgba(150, 110, 40, 0.45)'));
+    defs.appendChild(rodPattern('rod-add', 'var(--add)', 'rgba(255, 255, 255, 0.55)'));
+    svg.appendChild(defs);
+
+    const grid = drawGrid();
+    const materialStart = el('g', {});
+    const materialAdd = el('g', {});
+    svg.appendChild(grid);
+    svg.appendChild(materialStart);
+    svg.appendChild(materialAdd);
+
+    /* Ein Einerwuerfel im Kaestchen index (0..99, zeilenweise von links oben). */
+    function cube(index, kind) {
+        const col = index % 10;
+        const row = Math.floor(index / 10);
+        return el('rect', {
+            x: col * CELL + INSET, y: row * CELL + INSET,
+            width: CELL - 2 * INSET, height: CELL - 2 * INSET,
+            rx: 5, 'stroke-width': 2, class: 'piece cube ' + kind
+        });
+    }
+
+    /* Eine Zehnerstange, die die Zeile row (0..9) ganz ausfuellt. */
+    function rod(row, kind) {
+        return el('rect', {
+            x: INSET, y: row * CELL + INSET,
+            width: SIZE - 2 * INSET, height: CELL - 2 * INSET,
+            rx: 5, 'stroke-width': 2, class: 'piece rod ' + kind
+        });
+    }
+
+    /* Material fuer die Kaestchen from..to (exklusiv), so wie man beim
+       Ergaenzen rechnet: erst Einer bis zum vollen Zehner, dann ganze
+       Zehnerstangen, zuletzt die restlichen Einer. Fuer die Startmenge (ab 0)
+       ergibt dieselbe Regel Stangen fuer die vollen Zeilen plus Einer. */
+    function pieces(from, to) {
+        const list = [];
+        let i = from;
+        const nextTen = Math.ceil(i / 10) * 10;
+        for (; i < Math.min(to, nextTen); i++) list.push({ type: 'cube', index: i });
+        for (; to - i >= 10; i += 10) list.push({ type: 'rod', row: i / 10 });
+        for (; i < to; i++) list.push({ type: 'cube', index: i });
+        return list;
+    }
+
+    /* Zeitversatz je Stueck (ms): ein Wuerfel ist schnell gelegt, eine Stange
+       soll als eigener Schritt lesbar sein. Wird die Folge zu lang, wird sie
+       gleichmaessig auf T_MAX gestaucht. */
+    const T_CUBE = 110;
+    const T_ROD  = 300;
+    const T_MAX  = 2800;
+
+    /* Material in die Gruppe legen. animated = true: nacheinander einblenden,
+       sonst sofort komplett da (Startmenge). */
+    function lay(group, from, to, kind, animated, delayStart) {
+        group.innerHTML = '';
+        const list = pieces(from, to);
+        const nodes = [];
+        let total = 0;
+        for (const p of list) total += p.type === 'rod' ? T_ROD : T_CUBE;
+        const squeeze = Math.min(1, T_MAX / Math.max(total, 1));
+
+        let t = delayStart || 0;
+        for (const p of list) {
+            const node = p.type === 'rod' ? rod(p.row, kind) : cube(p.index, kind);
+            if (animated) {
+                node.classList.add('pop');
+                node.style.transitionDelay = Math.round(t) + 'ms';
+                t += (p.type === 'rod' ? T_ROD : T_CUBE) * squeeze;
+            }
+            group.appendChild(node);
+            nodes.push(node);
+        }
+        if (animated) {
+            // Der Browser muss den Startzustand (scale 0) erst einmal gesehen
+            // haben, sonst laeuft keine Transition. Ein erzwungener Reflow
+            // reicht und haengt - anders als requestAnimationFrame - nicht
+            // davon ab, ob der Tab gerade sichtbar ist.
+            void svg.getBoundingClientRect();
+            nodes.forEach((n) => n.classList.add('in'));
+        }
+    }
+
+    function renderField() {
+        materialAdd.innerHTML = '';
+        lay(materialStart, 0, task.n, 'start', false);
+        if (revealed) lay(materialAdd, task.n, task.target, 'add', false);
+    }
+
+    function reveal() {
+        revealed = true;
+        renderEquation();
+        // Die Loesung legt sich blau dazu; die Startmenge bleibt liegen.
+        lay(materialAdd, task.n, task.target, 'add', true, 150);
+    }
+
+    /* Taste W: das Ergaenzte noch einmal legen. */
+    function replay() {
+        if (revealed) lay(materialAdd, task.n, task.target, 'add', true, 0);
+    }
+
+    /* ------------------------------------------------------------------
+       Betriebsarten anwenden
+       ------------------------------------------------------------------ */
+    function applyMode() {
+        document.body.classList.toggle('symbolic', modeIndex === 1);
+        document.getElementById('mode-label').textContent = MODES[modeIndex];
+    }
+
+    function applyLevel() {
+        document.getElementById('level-label').textContent = LEVELS[levelIndex].name;
+    }
+
+    /* ------------------------------------------------------------------
+       Tastatur
+       ------------------------------------------------------------------ */
+    window.addEventListener('keydown', (e) => {
+        // Leertaste = Pfeil nach rechts (Vorwaertsknopf der Fernbedienungen).
+        const forward = e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar';
+
+        if (forward) {
+            e.preventDefault();
+            if (revealed) newTask();
+            else reveal();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Nur die Darstellung wechseln, die Aufgabe bleibt stehen.
+            modeIndex = (modeIndex + 1) % MODES.length;
+            applyMode();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Andere Stufe heisst andere Aufgabe: neu ziehen.
+            levelIndex = (levelIndex + 1) % LEVELS.length;
+            applyLevel();
+            newTask();
+        } else if (e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            replay();
+        }
+    });
+
+    applyMode();
+    applyLevel();
+    newTask();
+    </script>
+</body>
+</html>
