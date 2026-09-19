@@ -57,6 +57,47 @@ merkbar. Der Buchstabe gehört mit in die Fußzeile.
 bleibt beim Anzeigen der Lösung ausgeblendet — sonst springt das Tafelbild und
 verwirrt die Kinder. (Ausdrücklicher Wunsch nach Praxistest im Unterricht.)
 
+## Seiten zum Selbstrechnen — Ausnahme von der Sitzkreis-Regel
+
+Zwei Seiten sind **nicht** fürs Tafelbild, sondern für ein Kind am eigenen
+Gerät gedacht: `Zehneruebergang` (ZR 20) und `Zehneruebergang-ZR100`.
+Dort gelten die Regeln oben teilweise nicht — das ist Absicht und kein
+Nachrüstbedarf:
+
+- Sie **haben Eingabefelder** und fragen nach dem Ergebnis.
+- `→` bedeutet dort **nicht** „Lösung zeigen“, sondern schaltet zum nächsten
+  Eingabefeld; `Enter` bestätigt. Alle vier Pfeile gehören der Eingabe.
+- Schriftgrößen dürfen kleiner sein: gelesen wird aus 40 cm, nicht aus der
+  letzten Reihe.
+- Sie führen Streak und Schwierigkeitsstufe mit, **ohne zu speichern**. Ein
+  Neuladen setzt beides zurück; das ist gewollt, damit niemand über Tage
+  hinweg sammelt.
+
+**Die Eingabe läuft immer über einen einzigen Controller** (`INPUT.digit`,
+`.back`, `.step`, `.bump`, `.submit` in `Zehneruebergang-ZR100`), nicht verteilt
+im Tastatur-Listener. Die Kinder arbeiten an iPads mit Hüllentastatur; sollte
+später ein antippbares Ziffernfeld dazukommen, ruft es dieselben Funktionen auf
+und sonst ändert sich nichts.
+
+**Fehler werden vorgemacht, nicht nur markiert.** Die falsche Zerlegung des
+Kindes wird genau so ins Hunderterfeld gelegt, wie es sie eingegeben hat — mit
+sichtbarem Vorrat daneben, aus dem die Einer verschwinden. Wer statt 4 + 1 die
+Zerlegung 4 + 2 einträgt, sieht den Vorrat leer werden und den sechsten Würfel
+rot gestrichelt danebenliegen. Dazu höchstens **ein** Hinweissatz, nicht fünf.
+
+**Der erste Schritt bleibt in seiner Zeile und läuft notfalls heraus.** Das ist
+die wichtigste Abweichung von der Regel „zeilenweise von links oben“ weiter
+unten, und sie gilt nur hier: Schritt 1 legt weiter in der Zeile, in der die
+Einer der Startzahl liegen, Schritt 2 fängt immer am Anfang der nächsten Zeile
+an. Bei 85 + 7 mit der Zerlegung 6 und 1 liegen also fünf Einer im neunten
+Zehner, sechs kommen dazu — und der sechste ragt rechts aus dem Feld heraus,
+in ein gestricheltes Kaestchen. Legt ein Kind zu wenig, bleibt in der Zeile
+darüber eine Lücke. Würde stattdessen einfach umgebrochen, wäre der Fehler
+unsichtbar: das Material läge genauso wie bei der richtigen Zerlegung. Rechts
+vom Feld sind dafür vier Spalten reserviert (`RESERVE`); braucht es mehr,
+wächst nur der `viewBox` und das Bild rückt zusammen, damit die Seite nicht
+springt. Genauso macht es die ZR-20-Seite mit ihrem Zwanzigerfeld.
+
 ## Aussehen
 
 ### Aufgabenkasten
@@ -215,6 +256,9 @@ der fünften Zeile eine dicke Linie, die wie im *Denken & Rechnen*-Heft ein
 Stück über den Rand hinausragt (Kraft der Fünf). Gefüllt wird **zeilenweise
 von links oben.**
 
+> Ausnahme: Auf den Seiten zum Selbstrechnen legt das Kind schrittweise, und
+> dann bleibt ein Schritt in seiner Zeile, statt umzubrechen — siehe oben.
+
 Im Feld liegt **Dienes-Material, keine Wendeplättchen**: Jede volle Zeile ist
 **eine Zehnerstange** (ein Stück mit schwacher Kästchenteilung), nur der
 Rest sind einzelne **Einerwürfel** mit dunkler Kante. Ein Würfel pro Kästchen
@@ -272,5 +316,6 @@ statt neu zu zeichnen — sonst läuft keine Transition.
 | `Ergaenzen-Hunderterfeld-ZR100` | Ergänzen auf dem Hunderterfeld, vier Stufen per `↓` (nächster Zehner, im selben Zehner, höherer Zehner, beliebige Zahl); `↑` nur symbolisch |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
+| `Zehneruebergang-ZR100` | Zehnerübergang in zwei Schritten bis 100, **von Kindern selbst bearbeitet**: Zerlegung eintippen, danach Kontrolle am Hunderterfeld |
 | `Verliebte-Zahlen` | Zahlenzerlegung bis 10 |
 | `Verdoppeln-Halbieren` | Verdoppeln und Halbieren |
