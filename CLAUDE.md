@@ -358,6 +358,18 @@ zusammengemischt. Das Element springt dann einfach, ohne Fehlermeldung und
 ohne dass im JavaScript etwas falsch aussieht. `svg * { … }` tut dasselbe und
 lässt sich von jeder Klasse überschreiben.
 
+**Gebogene Pfeile: der Strich endet vor der Spitze, nicht an ihr.** Liegt das
+Kurvenende genau auf der Dreiecksspitze, ragt der Strich dort trotzdem
+seitlich heraus — er ist über seine ganze Länge gleich breit, das Dreieck
+läuft aber spitz zu und ist auf den letzten Pixeln schmaler als er. Das sieht
+aus, als schösse die Linie über die Spitze hinaus. Die Kurve selbst bleibt
+unverändert und symmetrisch; gekürzt wird nur, **wie viel von ihr gemalt
+wird** (`stroke-dashoffset`), während die Spitze weiter auf dem echten
+Kurvenende sitzt. Als Einzug reicht ungefähr `(halbe Strichbreite /
+halbe Dreiecksbreite) * Dreieckslänge` plus etwas Luft — bei 6 px Strich und
+einem Dreieck von 21 × 19 px sind das 12 px. Schöner Nebeneffekt: zu Beginn
+der Animation eilt die Spitze der Linie voraus, statt auf ihr zu kleben.
+
 **Platzhalter sitzen auf der Grundlinie der Zahl, die sie vertreten**, nicht
 in deren Mitte, und sind dünn (rund 8 px bei 54 px Schrift). Ein dicker
 Balken auf halber Zahlenhöhe liest sich als eigenes Element statt als

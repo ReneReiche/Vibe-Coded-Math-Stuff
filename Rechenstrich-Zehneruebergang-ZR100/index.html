@@ -430,10 +430,7 @@ function bogen(xa, xb, farbe) {
     var s = el('polygon', { points: '0,0 -21,-9.5 -21,9.5', fill: farbe }, g);
     g._pfad = p; g._spitze = s; g._h = h; g._mitte = (xa + xb) / 2;
 
-    var len = p.getTotalLength();
-    p.style.strokeDasharray  = len;
-    p.style.strokeDashoffset = len;    // ungezeichnet vorbereiten
-    setzeSpitze(g, 0.5);
+    zeichneBis(g, 0.5);                // ungezeichnet vorbereiten
     return g;
 }
 
@@ -603,6 +600,34 @@ function plopp(n) {
    Scheitel genau waagerecht, danach schraeg nach unten. Beides laeuft in
    derselben Schleife, damit Linie und Spitze nicht auseinanderlaufen.
    ================================================================== */
+/* Der sichtbare Bogen endet ein Stueck VOR der Spitze.
+
+   Grund: der Strich ist 6 px breit, das Dreieck laeuft auf 21 px Laenge spitz
+   zu. Auf den letzten gut 6 px ist es also schmaler als der Strich, und dessen
+   gerader Abschluss ragt dort seitlich heraus - das liest sich, als schoesse
+   die Linie ueber die Spitze hinaus. Bei EINZUG = 12 ist das Dreieck an der
+   Schnittstelle rund 5,4 px halbbreit und deckt den 3 px halbbreiten Strich
+   sicher ab.
+
+   Die Kurve selbst bleibt unveraendert und symmetrisch; gekuerzt wird nur,
+   wie viel von ihr gemalt wird, und die Spitze sitzt weiter genau auf dem
+   Kurvenende. Wer die Strichbreite aendert, muss EINZUG mitziehen: noetig
+   sind etwa (halbe Strichbreite / 9,5) * 21 plus Sicherheitsabstand.
+
+   Nebeneffekt, und zwar ein erwuenschter: zu Beginn der Animation eilt die
+   Spitze der Linie ein Stueck voraus, statt auf ihr zu kleben. */
+var EINZUG = 12;
+
+/* s ist die Position der SPITZE auf der Kurve, nicht die Strichlaenge. */
+function zeichneBis(g, s) {
+    var p   = g._pfad;
+    var len = p.getTotalLength();
+    var sichtbar = Math.max(0, s - EINZUG);
+    p.style.strokeDasharray  = len;
+    p.style.strokeDashoffset = len - sichtbar;
+    setzeSpitze(g, s);
+}
+
 var BOGEN_DAUER = 620;   // laenger als das Hausmass von 320 ms: der Bogen ist
                          // kein Zustandswechsel, sondern der Inhalt selbst -
                          // die Kinder sollen ihm mit den Augen folgen koennen.
@@ -617,22 +642,16 @@ function setzeSpitze(g, s) {
 }
 
 function zeichneBogen(g, animiert) {
-    var p   = g._pfad;
-    var len = p.getTotalLength();
-    p.style.strokeDasharray = len;
+    var len = g._pfad.getTotalLength();
 
-    if (!animiert) {
-        p.style.strokeDashoffset = 0;
-        setzeSpitze(g, len);
-        return;
-    }
+    if (!animiert) { zeichneBis(g, len); return; }
+
     var start = null;
     requestAnimationFrame(function frame(jetzt) {
         if (start === null) start = jetzt;
         var roh = Math.min(1, (jetzt - start) / BOGEN_DAUER);
         var t   = 1 - Math.pow(1 - roh, 3);        // weiches Auslaufen
-        p.style.strokeDashoffset = len * (1 - t);
-        setzeSpitze(g, Math.max(0.5, len * t));
+        zeichneBis(g, Math.max(0.5, len * t));
         if (roh < 1) requestAnimationFrame(frame);
     });
 }
