@@ -57,6 +57,38 @@ merkbar. Der Buchstabe gehört mit in die Fußzeile.
 bleibt beim Anzeigen der Lösung ausgeblendet — sonst springt das Tafelbild und
 verwirrt die Kinder. (Ausdrücklicher Wunsch nach Praxistest im Unterricht.)
 
+## Aufgebaute Tafelbilder — eigenes Genre, eigene `←`-Bedeutung
+
+Manche Seiten zeigen nicht „Aufgabe → Lösung → nächste“, sondern **bauen ein
+Tafelbild Schritt für Schritt auf**, mit einer Denkpause je Schritt. Bisher:
+`Rechenstrich-Zehneruebergang-ZR100`.
+
+Dort bedeutet `←` **einen Schritt zurück** und nicht „Variante umschalten“.
+Ohne Zurück-Taste ließe sich ein Schritt im Sitzkreis nicht noch einmal
+zeigen — und genau das passiert ständig, wenn ein Kind etwas Falsches sagt
+oder die Lehrkraft sich verklickt. `↑` bleibt dadurch als einziger
+rotierender Umschalter übrig; reicht das nicht, kommen Buchstaben dran.
+
+Auch `Bild ab`/`Bild auf` sind mitbelegt: Präsentationsfernbedienungen senden
+je nach Modell `→`, `Leertaste` oder `Bild ab`, und im Sitzkreis steht die
+Lehrkraft nicht am Rechner.
+
+**Der Zustand wird immer vollständig hergestellt, nie fortgeschrieben.** Jedes
+Element kennt den Schritt, ab dem es sichtbar ist; gerendert wird aus dem
+Schrittindex heraus. Damit ist Zurück derselbe Code wie Vorwärts. Während des
+Neuaufbaus schaltet eine Klasse alle Transitions und Animationen ab (`.instant`),
+sonst liefen beim Zurückspringen sämtliche übersprungenen Animationen noch
+einmal los. **Abgelaufene Animationsklassen dabei abräumen** — eine liegen
+gebliebene `.pop`-Klasse wird vom Ab- und Wiedereinschalten der Animationen
+erneut scharf gemacht, und dann ploppt bei jedem Tastendruck das halbe
+Tafelbild noch einmal auf.
+
+**Schrittfolgen werden erzeugt, nicht fest verdrahtet.** Blendet eine Taste
+eine Zusatzdarstellung ein, schiebt sie deren Schritte in die Liste ein. Der
+aktuelle Schritt wird über seinen **Namen** gemerkt, nicht über seinen Index —
+nur so darf die Hilfe mitten in der Aufgabe dazukommen, ohne dass das
+Tafelbild springt.
+
 ## Seiten zum Selbstrechnen — Ausnahme von der Sitzkreis-Regel
 
 Zwei Seiten sind **nicht** fürs Tafelbild, sondern für ein Kind am eigenen
@@ -220,6 +252,19 @@ schwarzen Aufgabenstellung. Zahlen und Beschriftungen fast reines Schwarz
 (`#4f8edc` / `#4a9fd4`) mit Rot als Gegenfarbe — das ist gewachsen und darf so
 bleiben; für Neues das Standardblau nehmen.
 
+**Bei jeder Zerlegung gilt seitenübergreifend: erster Teil blau, zweiter Teil
+rot** (`--red: #f44336`), so wie es `Zahlzerlegung-ZR20-OZ` vorgibt. Rot
+markiert also immer den **Rest**, nie das Verbrauchte. Zeigt eine Seite
+dieselbe Zerlegung zweimal — etwa als Sprung am Rechenstrich und daneben als
+Wendeplättchen —, müssen beide Darstellungen dieselbe Farbe tragen, sonst
+bedeutet ein und dasselbe Rot im selben Bild zwei gegensätzliche Dinge.
+
+Daraus folgt: **wo Blau und Rot die Zerlegung tragen, dürfen sie nicht
+zusätzlich „aufgedeckt“ bedeuten.** Auf `Rechenstrich-Zehneruebergang-ZR100`
+bleiben deshalb alle Zahlen am Rechenstrich schwarz — sie gehören zur selben
+Sorte (Stellen auf dem Strich); unterschieden wird dort über die Strichstärke:
+gegeben normal, aufgedeckt fett.
+
 ### Dienes-Material
 
 Einer liegen **rechts neben den Zehnerstangen**, auf Höhe der untersten Stange,
@@ -305,6 +350,19 @@ Hausmaß: **~320 ms** Dauer mit leichter Überschwing-Kurve
 Wichtig: Beim Umschalten die vorhandenen Elemente per CSS-Klasse umschalten
 statt neu zu zeichnen — sonst läuft keine Transition.
 
+**Sammelregeln für Transitions nie über einen ID-Selektor schreiben.** Eine
+Regel wie `#buehne * { transition: opacity … }` ist spezifischer als jede
+Klasse und überstimmt die eigene Transition von `.dot` oder `.tick`
+vollständig — `transition` ist eine einzige Eigenschaft, da wird nichts
+zusammengemischt. Das Element springt dann einfach, ohne Fehlermeldung und
+ohne dass im JavaScript etwas falsch aussieht. `svg * { … }` tut dasselbe und
+lässt sich von jeder Klasse überschreiben.
+
+**Platzhalter sitzen auf der Grundlinie der Zahl, die sie vertreten**, nicht
+in deren Mitte, und sind dünn (rund 8 px bei 54 px Schrift). Ein dicker
+Balken auf halber Zahlenhöhe liest sich als eigenes Element statt als
+Leerstelle und gerät am Rechenstrich den Strichen zu nahe.
+
 ## Bestehende Seiten
 
 | Ordner | Thema |
@@ -317,5 +375,6 @@ statt neu zu zeichnen — sonst läuft keine Transition.
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
 | `Zehneruebergang-ZR100` | Zehnerübergang in zwei Schritten bis 100, **von Kindern selbst bearbeitet**: Zerlegung eintippen, danach Kontrolle am Hunderterfeld |
+| `Rechenstrich-Zehneruebergang-ZR100` | Zehnerübergang ZE + E am Rechenstrich, **Schritt für Schritt aufgebautes Tafelbild**; `↓` blendet die Zerlegung des zweiten Summanden als Wendeplättchen ein |
 | `Verliebte-Zahlen` | Zahlenzerlegung bis 10 |
 | `Verdoppeln-Halbieren` | Verdoppeln und Halbieren |

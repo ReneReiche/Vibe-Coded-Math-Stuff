@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zehner&uuml;bergang am Rechenstrich</title>
+<style>
+    :root {
+        --line:   #3a3a3a;   /* Rechenstrich, Striche, Hilfsgeometrie */
+        --number: #0d0d0d;   /* Zahlen unter dem Rechenstrich */
+        --blue:   #2196F3;   /* erster Teilschritt */
+        --red:    #f44336;   /* zweiter Teilschritt */
+        --ph:     #dddddd;   /* Platzhalter */
+        --bg:     #f8f9fa;
+        --card-bg:#ffffff;
+    }
+
+    body {
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg);
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+    }
+
+    .main-card {
+        background: var(--card-bg);
+        position: relative;
+        padding: 58px 40px 28px;
+        border-radius: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.05);
+        width: 92vw;
+        max-width: 1400px;
+        box-sizing: border-box;
+    }
+
+    /* Pille auf der oberen Kartenkante: 30 % ragen heraus, 70 % liegen innen.
+       Der X-Wert im translate muss -50 % bleiben (der zentriert waagerecht),
+       nur der Y-Wert bestimmt die Aufteilung aussen/innen. */
+    .title-pill {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translate(-50%, -30%);
+        background: var(--blue);
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 500;
+        padding: 10px 32px;
+        border-radius: 999px;
+        width: fit-content;
+        margin: 0;
+        white-space: nowrap;
+        letter-spacing: 0.3px;
+        box-shadow: 0 4px 12px -2px rgba(33,150,243,0.4);
+    }
+
+    svg#buehne {
+        width: 100%;
+        height: auto;
+        display: block;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* --- Ein- und Ausblenden ------------------------------------------
+       Jedes Element kennt den Schritt, ab dem es sichtbar ist. Gerendert
+       wird immer der vollstaendige Zustand, nie eine Differenz - deshalb
+       ist Schritt-zurueck derselbe Code wie Schritt-vorwaerts. */
+       Der Selektor ist bewusst OHNE ID geschrieben: `#buehne *` waere
+       spezifischer als jede Klasse und wuerde die eigenen Transitions von
+       `.tick`, `.spaet` und `.dot` stillschweigend ueberstimmen - die
+       Plaettchen waeren dann kommentarlos gesprungen statt gerueckt. */
+    svg * { transition: opacity 220ms ease; }
+    .hidden { opacity: 0; }
+
+    /* Striche wachsen aus dem Rechenstrich heraus, statt einfach da zu sein.
+       transform-origin sitzt inline auf der Mitte des jeweiligen Strichs,
+       also genau auf der Linie - dadurch faehrt er nach oben und nach unten
+       gleichzeitig aus. */
+    .tick {
+        transition: transform 340ms cubic-bezier(0.34, 1.5, 0.64, 1),
+                    opacity 150ms ease;
+    }
+    .tick.hidden { transform: scaleY(0); }
+
+    /* Ein Platzhalter unter einem Strich kommt erst, wenn der Strich steht.
+       Die Verzoegerung steht nur in der sichtbaren Regel und nicht in der
+       versteckten: sie gilt damit beim Erscheinen, nicht beim Verschwinden -
+       sonst bliebe der Platzhalter beim Aufdecken der Zahl noch einen
+       Moment liegen und ueberschnitte sich mit ihr. */
+    .spaet        { transition: opacity 200ms ease 300ms; }
+    .spaet.hidden { transition: opacity 150ms ease 0ms; }
+
+    /* Waehrend der Zustand neu aufgebaut wird (Zurueckspringen, Moduswechsel)
+       sind alle Uebergaenge abgeschaltet, sonst liefen beim Zurueckgehen
+       saemtliche Animationen der uebersprungenen Schritte noch einmal los. */
+    .instant * { transition: none !important; animation: none !important; }
+
+    /* Hausmass fuer Zustandswechsel: 320 ms mit leichtem Ueberschwingen. */
+    .pop { animation: pop 320ms cubic-bezier(0.34, 1.5, 0.64, 1); }
+    @keyframes pop {
+        from { transform: scale(0.35); opacity: 0; }
+        to   { transform: scale(1);    opacity: 1; }
+    }
+    text.zahl {
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    /* Wendeplaettchen: der Koerper faerbt um, das Glanzlicht wandert beim
+       Umdrehen auf die andere Seite (scaleX(-1)). Der Koerper ist deshalb
+       eine Volltonfarbe und kein Farbverlauf - Volltoene lassen sich weich
+       ueberblenden, ein Verlauf wuerde hart umspringen. */
+    .dot {
+        transform-box: fill-box;
+        transform-origin: center;
+        transition: transform 420ms cubic-bezier(0.34, 1.5, 0.64, 1);
+    }
+    .dot .body { transition: fill 320ms ease; }
+
+    .footer-hint {
+        margin-top: 22px;
+        font-size: 16px;
+        color: #aaa;
+        background: rgba(0,0,0,0.03);
+        padding: 8px 20px;
+        border-radius: 20px;
+        max-width: 96vw;
+        text-align: center;
+        line-height: 1.5;
+    }
+    .footer-hint .hint-group { white-space: nowrap; }
+    .footer-hint .hint-sep { margin: 0 6px; color: #ccc; }
+    .footer-hint b { color: #888; }
+
+    .credit {
+        margin-top: 8px;
+        font-size: 11px;
+        color: #bbb;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    /* 12 x 9 Rasterfelder zu je genau 3 CSS-Pixeln, damit die Figur bei
+       100 % Zoom pixelscharf ist. Bewusst ohne shape-rendering. */
+    .credit .mascot { width: 36px; height: 27px; opacity: 0.85; }
+</style>
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="title-pill">Zehner&uuml;bergang am Rechenstrich</div>
+        <svg id="buehne" viewBox="0 0 1200 660" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="footer-hint">
+        <span class="hint-group"><b>&rarr;</b> bzw. <b>Leertaste</b>: n&auml;chster Schritt</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&larr;</b> einen Schritt zur&uuml;ck</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group"><b>&darr;</b> Pl&auml;ttchen-Zerlegung: <span id="hilfe-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group">am Ende: <b>&rarr;</b> neue Aufgabe</span>
+    </div>
+    <div class="credit">
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude (AI)
+        <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
+             12 x 9-Raster. Inline-SVG, damit die Seite assetfrei bleibt. -->
+        <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
+            <g fill="#d97757">
+                <rect x="3" y="1" width="7" height="5"/>
+                <rect x="1" y="2" width="2" height="2"/>
+                <rect x="10" y="2" width="2" height="2"/>
+                <rect x="3" y="6" width="1" height="2"/>
+                <rect x="5" y="6" width="1" height="2"/>
+                <rect x="7" y="6" width="1" height="2"/>
+                <rect x="9" y="6" width="1" height="2"/>
+            </g>
+            <rect x="4" y="2" width="1" height="1" fill="#1a1a1a"/>
+            <rect x="8" y="2" width="1" height="1" fill="#1a1a1a"/>
+        </svg>
+    </div>
+
+<script>
+'use strict';
+
+var NS  = 'http://www.w3.org/2000/svg';
+var svg = document.getElementById('buehne');
+
+/* ==================================================================
+   Geometrie (im viewBox-System 1200 x 660)
+   ================================================================== */
+var LINE_Y  = 520;            // Hoehe des Rechenstrichs
+var LINE_X1 = 95;             // linker Stummel
+var LINE_X2 = 1105;           // rechter Stummel
+var X_START = 170;            // Strich des ersten Summanden
+var X_END   = 990;            // Strich des Ergebnisses
+var TICK_H  = 25;             // halbe Strichhoehe
+var NUM_Y   = LINE_Y + 70;    // Grundlinie der Zahlen unter dem Strich
+var ARC_Y   = LINE_Y - 2;     // Ansatzhoehe der Boegen
+
+/* Aufteilung der Strecke auf die beiden Teilschritte.
+   Rein proportional (2 zu 4 ergaebe 1 zu 2) waere am ehrlichsten, macht
+   aber bei 1 zu 8 einen Bogen von nur 90 px, ueber den keine Beschriftung
+   mehr passt. DAEMPFUNG addiert auf beide Teile denselben Sockel: die
+   Reihenfolge bleibt garantiert erhalten - der kleinere Teilschritt
+   bekommt nie den breiteren Bogen -, nur das Verhaeltnis wird gestaucht. */
+var DAEMPFUNG = 0.5;
+
+var PANEL    = { x: 676, y: 14, w: 490, h: 292 };
+var PANEL_CX = PANEL.x + PANEL.w / 2;
+
+/* ==================================================================
+   Aufgaben
+
+   Hausregel: gleichverteilt gezogen wird die Zahl, die in der Aufgabe die
+   groesste sein kann - beim Plus also das Ergebnis, danach eine seiner
+   Zerlegungen. Zoege man stattdessen den ersten Summanden gleichverteilt,
+   bekaemen Ergebnisse mit vielen Zerlegungen zu viel Gewicht.
+
+   Nebenbefund der Aufzaehlung: glatte Zehner koennen gar nicht als
+   Ergebnis vorkommen. Waere das Ergebnis ein glatter Zehner, waere der
+   Zwischenzehner das Ergebnis selbst - dann gaebe es keinen zweiten
+   Schritt und damit keinen Zehneruebergang.
+   ================================================================== */
+var AUFGABEN = {};            // Ergebnis -> Liste moeglicher [a, b]
+(function sammleAufgaben() {
+    for (var a = 11; a <= 98; a++) {
+        var einer = a % 10;
+        if (einer === 0) continue;              // a muss eine ZE-Zahl sein
+        for (var b = 2; b <= 9; b++) {
+            if (einer + b <= 10) continue;      // genau 10 waere nur ein Schritt
+            if (a + b > 100) continue;
+            if (!AUFGABEN[a + b]) AUFGABEN[a + b] = [];
+            AUFGABEN[a + b].push([a, b]);
+        }
+    }
+})();
+var ERGEBNISSE = Object.keys(AUFGABEN).map(Number);
+
+var beutel = [];
+function zieheAufgabe() {
+    if (beutel.length === 0) {                  // Beutel ohne Zuruecklegen
+        beutel = ERGEBNISSE.slice();
+        for (var i = beutel.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var t = beutel[i]; beutel[i] = beutel[j]; beutel[j] = t;
+        }
+    }
+    var paare = AUFGABEN[beutel.pop()];
+    return paare[Math.floor(Math.random() * paare.length)];
+}
+
+/* ==================================================================
+   Schrittfolge
+
+   Die Liste wird erzeugt, nicht fest verdrahtet: ist die Plaettchenhilfe
+   an, stecken fuenf Schritte mehr darin. Gemerkt wird der aktuelle Schritt
+   ueber seinen Namen, nicht ueber seinen Index - deshalb darf die Hilfe
+   mitten in der Aufgabe dazukommen, ohne dass das Tafelbild springt.
+   ================================================================== */
+var GRUNDSCHRITTE = [
+    'start',      // Aufgabe, Rechenstrich, erster Summand
+    'tick10',     // Strich fuer den Zehner, darunter ein Platzhalter
+    'num10',      // Zehnerzahl erscheint
+    'arc1',       // erster Bogen wird gezeichnet
+    'plus1',      // "+" und Platzhalter ueber dem Bogen
+    'val1',       // erste Zerlegungszahl (blau)
+    'arc2',       // zweiter Bogen
+    'plus2',
+    'val2',       // zweite Zerlegungszahl (rot)
+    'tickEnd',    // Strich am Ende, darunter ein Platzhalter
+    'ergebnis'
+];
+/* Eingeschoben nach 'val1': erst wenn die erste Zerlegungszahl am Bogen
+   steht, geht es um die Frage, wie viele der Plaettchen davon schon
+   aufgebraucht sind. Vorher sollen die Kinder nur den Sprung zum Zehner
+   im Blick haben und die Zerlegung noch nicht mitdenken muessen. */
+var HILFSSCHRITTE = ['panel', 'frage1', 'teil1', 'frage2', 'teil2'];
+
+var hilfeAn  = false;
+var schritte = [];
+var schritt  = 0;
+
+function baueSchrittfolge() {
+    if (!hilfeAn) { schritte = GRUNDSCHRITTE.slice(); return; }
+    var i = GRUNDSCHRITTE.indexOf('val1') + 1;
+    schritte = GRUNDSCHRITTE.slice(0, i)
+        .concat(HILFSSCHRITTE)
+        .concat(GRUNDSCHRITTE.slice(i));
+}
+function da(name) {
+    var i = schritte.indexOf(name);
+    return i >= 0 && schritt >= i;
+}
+
+/* ==================================================================
+   Kleine SVG-Helfer
+   ================================================================== */
+function el(name, attrs, eltern) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    (eltern || svg).appendChild(n);
+    return n;
+}
+function text(t, x, y, groesse, farbe, eltern) {
+    var n = el('text', {
+        x: x, y: y, 'text-anchor': 'middle', 'font-size': groesse,
+        'font-weight': 700, fill: farbe, 'class': 'zahl'
+    }, eltern);
+    n.textContent = t;
+    return n;
+}
+/* Der Platzhalter ist ein Unterstrich auf der Grundlinie der Zahl, die
+   spaeter an seiner Stelle steht - kein Balken in deren Mitte. Deshalb wird
+   er an der Grundlinie ausgerichtet und nicht an der Oberkante, und deshalb
+   ist er duenn: zu dick geraet er den Strichen am Rechenstrich zu nahe und
+   liest sich als eigenes Element statt als Leerstelle. */
+var PH_DICKE = 8;
+function platzhalter(x, grundlinie, w, eltern, dicke) {
+    var h = dicke || PH_DICKE;
+    return el('rect', { x: x - w / 2, y: grundlinie - 2, width: w, height: h,
+                        rx: h / 2, fill: 'var(--ph)' }, eltern);
+}
+
+/* ==================================================================
+   Aufbau einer Aufgabe
+
+   Alle Elemente werden einmal erzeugt und danach nur noch ein- und
+   ausgeblendet. Wuerde bei jedem Schritt neu gezeichnet, liefe keine
+   einzige Transition.
+   ================================================================== */
+var A = {};    // aktuelle Aufgabe
+var E = {};    // benannte Elemente
+
+function neueAufgabe() {
+    var p     = zieheAufgabe();
+    var a     = p[0], b = p[1];
+    var teil1 = 10 - (a % 10);        // Schritt bis zum naechsten Zehner
+    var teil2 = b - teil1;            // Rest
+    A = { a: a, b: b, zehner: a + teil1, summe: a + b, teil1: teil1, teil2: teil2 };
+
+    var anteil = (teil1 + DAEMPFUNG) / (b + 2 * DAEMPFUNG);
+    A.xZehner  = Math.round(X_START + (X_END - X_START) * anteil);
+
+    baueBuehne();
+    schritt = 0;
+    zeige(false);
+}
+
+function bogenHoehe(w) {
+    return Math.max(60, Math.min(122, 26 + w * 0.18));
+}
+
+function baueBuehne() {
+    svg.innerHTML = '';
+    E = {};
+
+    /* --- Aufgabenkasten oben links -------------------------------- */
+    el('rect', { x: 40, y: 26, width: 258, height: 96, rx: 14,
+                 fill: '#ffffff', stroke: 'var(--line)', 'stroke-width': 3 });
+    text(A.a + ' + ' + A.b, 169, 94, 54, 'var(--number)');
+
+    /* --- Rechenstrich --------------------------------------------- */
+    el('line', { x1: LINE_X1, y1: LINE_Y, x2: LINE_X2, y2: LINE_Y,
+                 stroke: 'var(--line)', 'stroke-width': 5, 'stroke-linecap': 'round' });
+
+    /* --- Striche und Zahlen unter dem Strich -----------------------
+       Alle drei Zahlen bleiben schwarz: sie gehoeren zur selben Sorte
+       (Stellen am Rechenstrich). Blau und Rot sind hier fuer die
+       Zerlegung reserviert und duerfen nicht zusaetzlich "aufgedeckt"
+       bedeuten. Unterschieden wird ueber die Strichstaerke: der gegebene
+       erste Summand steht normal, das Aufgedeckte fett. */
+    strich(X_START);
+    E.num0 = text(A.a, X_START, NUM_Y, 54, 'var(--number)');
+    E.num0.setAttribute('font-weight', 500);
+
+    E.tick1 = strich(A.xZehner);
+    E.ph1   = platzhalter(A.xZehner, NUM_Y, 84);
+    E.ph1.setAttribute('class', 'spaet');          // wartet, bis der Strich steht
+    E.num1  = text(A.zehner, A.xZehner, NUM_Y, 54, 'var(--number)');
+
+    E.tick2 = strich(X_END);
+    E.ph2   = platzhalter(X_END, NUM_Y, 84);
+    E.ph2.setAttribute('class', 'spaet');
+    E.num2  = text(A.summe, X_END, NUM_Y, 54, 'var(--number)');
+
+    /* --- Boegen ---------------------------------------------------- */
+    E.bogen1 = bogen(X_START, A.xZehner, 'var(--blue)');
+    E.bogen2 = bogen(A.xZehner, X_END,   'var(--red)');
+    E.b1 = beschriftung(E.bogen1, A.teil1, 'var(--blue)');
+    E.b2 = beschriftung(E.bogen2, A.teil2, 'var(--red)');
+
+    bauePanel();
+}
+
+function strich(x) {
+    var n = el('line', { x1: x, y1: LINE_Y - TICK_H, x2: x, y2: LINE_Y + TICK_H,
+                         'class': 'tick', stroke: 'var(--line)',
+                         'stroke-width': 5, 'stroke-linecap': 'round' });
+    /* In Nutzerkoordinaten, nicht als Prozentwert: eine senkrechte Linie hat
+       eine null Pixel breite Bounding Box, und darauf ist "center" kein
+       verlaesslicher Bezugspunkt. */
+    n.style.transformOrigin = x + 'px ' + LINE_Y + 'px';
+    return n;
+}
+
+/* Ein Bogen ist eine quadratische Bezierkurve. Damit ihr Scheitel genau h
+   ueber der Linie liegt, muss der Kontrollpunkt 2h darueber sitzen - eine
+   quadratische Kurve erreicht immer nur die halbe Kontrollpunkthoehe. */
+function bogen(xa, xb, farbe) {
+    var g = el('g', {});
+    var h = bogenHoehe(xb - xa);
+    var d = 'M ' + xa + ' ' + ARC_Y +
+            ' Q ' + ((xa + xb) / 2) + ' ' + (ARC_Y - 2 * h) +
+            ' ' + xb + ' ' + ARC_Y;
+    var p = el('path', { d: d, fill: 'none', stroke: farbe,
+                         'stroke-width': 6, 'stroke-linecap': 'butt' }, g);
+    /* Die Spitze zeigt im eigenen Koordinatensystem nach rechts und hat
+       ihren Anker genau an der Spitze, nicht in der Mitte. Dadurch landet
+       sie exakt auf dem Kurvenende und schiesst nicht ueber den Strich
+       hinaus; ihr Koerper deckt die letzten 21 px der Linie ab. */
+    var s = el('polygon', { points: '0,0 -21,-9.5 -21,9.5', fill: farbe }, g);
+    g._pfad = p; g._spitze = s; g._h = h; g._mitte = (xa + xb) / 2;
+
+    var len = p.getTotalLength();
+    p.style.strokeDasharray  = len;
+    p.style.strokeDashoffset = len;    // ungezeichnet vorbereiten
+    setzeSpitze(g, 0.5);
+    return g;
+}
+
+function beschriftung(g, wert, farbe) {
+    var gr = el('g', {});
+    var y  = ARC_Y - g._h - 22;
+    var x  = g._mitte;
+    var plus = el('text', { x: x - 10, y: y, 'text-anchor': 'end', 'font-size': 46,
+                            'font-weight': 700, fill: farbe, 'class': 'zahl' }, gr);
+    plus.textContent = '+';
+    /* Auf derselben Grundlinie wie das Plus davor und genau dort beginnend,
+       wo gleich die Ziffer steht - sonst schwebt der Platzhalter neben dem
+       Plus statt daneben zu liegen. */
+    var ph = platzhalter(x + 42, y, 56, gr, 7);
+    var zahl = el('text', { x: x + 14, y: y, 'text-anchor': 'start', 'font-size': 46,
+                            'font-weight': 700, fill: farbe, 'class': 'zahl' }, gr);
+    zahl.textContent = wert;
+    return { g: gr, plus: plus, ph: ph, zahl: zahl };
+}
+
+/* ==================================================================
+   Plaettchenfeld oben rechts
+
+   Zerlegt wird immer der zweite Summand, und der ist hoechstens 9 - also
+   genau eine Reihe, kein Zwanzigerfeld. Farblogik wie auf der Seite
+   Zahlzerlegung-ZR20-OZ und wie bei den Boegen: erster Teil blau, zweiter
+   Teil rot. Rot markiert hier also NICHT das Verbrauchte, sondern den
+   Rest, der im zweiten Schritt noch dazukommt. Waere es umgekehrt, haette
+   dieselbe Farbe auf demselben Bild zwei gegensaetzliche Bedeutungen.
+   ================================================================== */
+var DOT_R = 20, DOT_ABST = 48, FUENFER = 16, SPREIZUNG = 22;
+
+function bauePanel() {
+    var g = el('g', {});
+    E.panel = g;
+
+    el('rect', { x: PANEL.x, y: PANEL.y, width: PANEL.w, height: PANEL.h, rx: 24,
+                 fill: '#f7f9fa', stroke: '#e5e8eb', 'stroke-width': 2 }, g);
+
+    /* Plaettchenreihe mit Fuenferluecke */
+    var n = A.b;
+    var breite = n * 2 * DOT_R + (n - 1) * (DOT_ABST - 2 * DOT_R) + (n > 5 ? FUENFER : 0);
+    var x0 = PANEL_CX - breite / 2 + DOT_R;
+    E.dots = [];
+    for (var i = 0; i < n; i++) {
+        var cx = x0 + i * DOT_ABST + (i >= 5 ? FUENFER : 0);
+        var d  = el('g', { 'class': 'dot' }, g);
+        el('circle', { cx: cx, cy: 66, r: DOT_R, 'class': 'body', fill: 'var(--blue)' }, d);
+        el('circle', { cx: cx - 6.5, cy: 59.5, r: 6.5, fill: '#ffffff', opacity: 0.45 }, d);
+        E.dots.push(d);
+    }
+
+    /* Zahlentriade darunter */
+    text(A.b, PANEL_CX, 156, 54, 'var(--number)', g);
+    el('line', { x1: PANEL_CX, y1: 170, x2: PANEL_CX - 88, y2: 216,
+                 stroke: 'var(--blue)', 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+    el('line', { x1: PANEL_CX, y1: 170, x2: PANEL_CX + 88, y2: 216,
+                 stroke: 'var(--red)', 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+
+    E.pPh1 = platzhalter(PANEL_CX - 88, 272, 60, g);
+    E.pPh2 = platzhalter(PANEL_CX + 88, 272, 60, g);
+    E.pT1  = text(A.teil1, PANEL_CX - 88, 272, 50, 'var(--blue)', g);
+    E.pT2  = text(A.teil2, PANEL_CX + 88, 272, 50, 'var(--red)',  g);
+}
+
+/* ==================================================================
+   Zustand herstellen
+   ================================================================== */
+var ueberspringeBogen = null;
+
+function sicht(n, an) { n.classList.toggle('hidden', !an); }
+
+function zeige(animiereLetzten) {
+    var neu = schritte[schritt];
+    ueberspringeBogen = animiereLetzten ? neu : null;
+
+    /* Abgelaufene Pop-Klassen abraeumen. Sonst schaltet das kurze Abschalten
+       aller Animationen weiter unten (.instant) die Klasse bei jedem Schritt
+       erneut scharf, und saemtliche schon stehenden Zahlen ploppen bei jedem
+       Tastendruck noch einmal auf. */
+    var alte = svg.querySelectorAll('.pop');
+    for (var i = 0; i < alte.length; i++) alte[i].classList.remove('pop');
+
+    svg.classList.add('instant');
+    stelleZustandHer(animiereLetzten ? schritt - 1 : schritt);
+    svg.getBoundingClientRect();          // Umbruch erzwingen
+    svg.classList.remove('instant');
+
+    if (animiereLetzten) {
+        stelleZustandHer(schritt);
+        if (neu === 'arc1') zeichneBogen(E.bogen1, true);
+        if (neu === 'arc2') zeichneBogen(E.bogen2, true);
+        var ploppt = { num10: E.num1, val1: E.b1.zahl, val2: E.b2.zahl,
+                       ergebnis: E.num2, teil1: E.pT1, teil2: E.pT2 };
+        if (ploppt[neu]) plopp(ploppt[neu]);
+    }
+    ueberspringeBogen = null;
+    document.getElementById('hilfe-label').textContent = hilfeAn ? 'an' : 'aus';
+}
+
+function stelleZustandHer(bis) {
+    var merke = schritt;
+    schritt = bis;
+
+    sicht(E.tick1, da('tick10'));
+    sicht(E.ph1,   da('tick10') && !da('num10'));
+    sicht(E.num1,  da('num10'));
+
+    sicht(E.bogen1,  da('arc1'));
+    sicht(E.b1.g,    da('plus1'));
+    sicht(E.b1.ph,   da('plus1') && !da('val1'));
+    sicht(E.b1.zahl, da('val1'));
+
+    sicht(E.bogen2,  da('arc2'));
+    sicht(E.b2.g,    da('plus2'));
+    sicht(E.b2.ph,   da('plus2') && !da('val2'));
+    sicht(E.b2.zahl, da('val2'));
+
+    sicht(E.tick2, da('tickEnd'));
+    sicht(E.ph2,   da('tickEnd') && !da('ergebnis'));
+    sicht(E.num2,  da('ergebnis'));
+
+    /* Boegen, die schon stehen, aber gerade nicht animiert werden, muessen
+       vollstaendig gezeichnet sein - sonst waere ein zurueckgesprungener
+       Bogen unsichtbar. Der gerade animierte wird ausgelassen, sonst
+       blitzte er einen Bild lang fertig auf, bevor die Animation startet. */
+    if (da('arc1') && ueberspringeBogen !== 'arc1') zeichneBogen(E.bogen1, false);
+    if (da('arc2') && ueberspringeBogen !== 'arc2') zeichneBogen(E.bogen2, false);
+
+    /* Plaettchenfeld: die Spreizung kommt erst mit der Zahl, nicht schon
+       mit der Frage. Sonst laege die Antwort auf dem Tisch, bevor gefragt
+       ist - die Kinder sollen sie am Bogen ablesen und im Plaettchenfeld
+       bestaetigt bekommen, nicht umgekehrt. */
+    sicht(E.panel, da('panel'));
+    sicht(E.pPh1, da('frage1') && !da('teil1'));
+    sicht(E.pT1,  da('teil1'));
+    sicht(E.pPh2, da('frage2') && !da('teil2'));
+    sicht(E.pT2,  da('teil2'));
+    if (E.dots) {
+        for (var i = 0; i < E.dots.length; i++) {
+            var ersterTeil = i < A.teil1;
+            var gewendet   = da('teil2') && !ersterTeil;
+            var t = '';
+            if (da('teil1')) t += 'translateX(' + (ersterTeil ? -SPREIZUNG : SPREIZUNG) + 'px) ';
+            if (gewendet)    t += 'scaleX(-1)';
+            E.dots[i].style.transform = t;
+            E.dots[i].querySelector('.body')
+                     .setAttribute('fill', gewendet ? 'var(--red)' : 'var(--blue)');
+        }
+    }
+
+    schritt = merke;
+}
+
+function plopp(n) {
+    n.classList.remove('pop');
+    void n.getBoundingClientRect();
+    n.classList.add('pop');
+}
+
+/* ==================================================================
+   Bogen zeichnen
+
+   Die Linie waechst ueber stroke-dashoffset, die Spitze wandert mit dem
+   wachsenden Ende mit. Ihren Winkel liefert die Steigung zwischen zwei
+   eng benachbarten Punkten auf der Kurve: am Anfang schraeg nach oben, am
+   Scheitel genau waagerecht, danach schraeg nach unten. Beides laeuft in
+   derselben Schleife, damit Linie und Spitze nicht auseinanderlaufen.
+   ================================================================== */
+var BOGEN_DAUER = 620;   // laenger als das Hausmass von 320 ms: der Bogen ist
+                         // kein Zustandswechsel, sondern der Inhalt selbst -
+                         // die Kinder sollen ihm mit den Augen folgen koennen.
+
+function setzeSpitze(g, s) {
+    var p = g._pfad;
+    var a = p.getPointAtLength(Math.max(0, s - 1));
+    var b = p.getPointAtLength(s);
+    var w = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+    g._spitze.setAttribute('transform',
+        'translate(' + b.x + ' ' + b.y + ') rotate(' + w + ')');
+}
+
+function zeichneBogen(g, animiert) {
+    var p   = g._pfad;
+    var len = p.getTotalLength();
+    p.style.strokeDasharray = len;
+
+    if (!animiert) {
+        p.style.strokeDashoffset = 0;
+        setzeSpitze(g, len);
+        return;
+    }
+    var start = null;
+    requestAnimationFrame(function frame(jetzt) {
+        if (start === null) start = jetzt;
+        var roh = Math.min(1, (jetzt - start) / BOGEN_DAUER);
+        var t   = 1 - Math.pow(1 - roh, 3);        // weiches Auslaufen
+        p.style.strokeDashoffset = len * (1 - t);
+        setzeSpitze(g, Math.max(0.5, len * t));
+        if (roh < 1) requestAnimationFrame(frame);
+    });
+}
+
+/* ==================================================================
+   Steuerung
+
+   Abweichung von der Haustabelle, bewusst: hier ist die Linke-Pfeil-Taste
+   "einen Schritt zurueck" und nicht "Variante umschalten". Diese Seite ist
+   ein schrittweise aufgebautes Tafelbild; ohne Zurueck-Taste liesse sich
+   ein Schritt im Sitzkreis nicht noch einmal zeigen.
+   Leertaste und Bild-ab/Bild-auf sind mitbelegt, weil die Vorwaertstaste
+   jeder Praesentationsfernbedienung eine davon sendet.
+   ================================================================== */
+function vor() {
+    if (schritt >= schritte.length - 1) { neueAufgabe(); return; }
+    schritt++;
+    zeige(true);
+}
+function zurueck() {
+    if (schritt === 0) return;
+    schritt--;
+    zeige(false);
+}
+function hilfeUmschalten() {
+    var anker = schritte[schritt];
+    hilfeAn = !hilfeAn;
+    baueSchrittfolge();
+    var i = schritte.indexOf(anker);
+    if (i < 0) i = schritte.indexOf('val1');   // stand in einem Hilfsschritt
+    schritt = i;
+    zeige(false);
+}
+
+window.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'Spacebar' || k === 'PageDown') {
+        e.preventDefault(); vor();
+    } else if (k === 'ArrowLeft' || k === 'PageUp') {
+        e.preventDefault(); zurueck();
+    } else if (k === 'ArrowDown') {
+        e.preventDefault(); hilfeUmschalten();
+    }
+});
+
+baueSchrittfolge();
+neueAufgabe();
+</script>
+</body>
+</html>
