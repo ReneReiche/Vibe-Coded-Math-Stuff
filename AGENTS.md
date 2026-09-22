@@ -7,9 +7,9 @@
 - Reihenfolge: **älteste zuerst**. Bei gleichem Datum bestehende Reihenfolge erhalten. Filter, Suche und Zähler lesen die HTML-Einträge automatisch; keine zweite Datenliste pflegen.
 - Aktuell sind `Zehneruebergang` und `Zehneruebergang-ZR100` für Schüler:innen, die anderen Lernseiten für den Sitzkreis. Die Startseite selbst ist keine Lernseite und wird nicht als Eintrag verlinkt.
 - Für die Startseite gelten normale klick- und tastaturbedienbare Navigation und Suche; die Tafelbild-Tastenregeln aus `CLAUDE.md` gelten für Lernseiten.
-- Credit der Startseite: „made by GPT-6 Astra“ mit eingebettetem OpenAI-Logo. Credits der Lernseiten beim Ergänzen von Links nicht verändern.
+- Credit der Startseite: „landing page by GPT-6 Astra“ mit eingebettetem OpenAI-Logo. Credits der Lernseiten beim Ergänzen von Links nicht verändern.
 
-- Gestaltung der Startseite: persönliche Unterrichtssammlung, keine Produktwerbung. Überschrift „Vibe coded Math Stuff“, eine kompakte chronologische Liste, keine Slogans oder werbenden Beschreibungen. Warme Farben und dezente Hover-Effekte (Kontur, Schatten, Bewegung) sind erwünscht; kein Retro-Hyperlink-Stil. Symbole müssen den tatsächlichen Inhalt treffen.
+- Gestaltung der Startseite: persönliche Unterrichtssammlung, keine Produktwerbung. Überschrift „Vibe-Coded Math Stuff“, eine kompakte chronologische Liste, keine Slogans oder werbenden Beschreibungen. Warme Farben und dezente Hover-Effekte (Kontur, Schatten, Bewegung) sind erwünscht; kein Retro-Hyperlink-Stil. Symbole müssen den tatsächlichen Inhalt treffen.
 
 ## Beim Erweitern beibehalten
 
@@ -19,7 +19,7 @@
 - Symbole sollen die konkrete Darstellung zeigen: z. B. ein Zerlegungsbaum für Zahlzerlegung oder Dienes-Stangen mit Rechenzeichen für Dienes-Aufgaben. Ein einzelnes Plus oder eine unpassende Beispielaufgabe ist zu unspezifisch. Wenn kein klares Symbol möglich ist, `.motif` leer lassen. Dekorative Symbole bleiben `aria-hidden="true"`.
 - Suche, Zahlenraum-Tags, die drei Filter und Trefferzähler erhalten. Neue Einträge dürfen keine Anpassung des JavaScripts verlangen. Zusätzliche Suchbegriffe gehören in `data-keywords`; für beide Zielgruppen ist `data-audience="sitzkreis schueler"` möglich.
 - Ein Themenordner enthält eine eigenständige `index.html`. Keine Abhängigkeiten, externen Schriften, Build-Dateien oder separaten Repositories hinzufügen. Die relativen Links müssen auch beim lokalen Öffnen funktionieren.
-- Beim bloßen Ergänzen einer Lernseite den Credit der Startseite „made by GPT-6 Astra“ mit OpenAI-Logo unverändert lassen. Dieser Credit betrifft die Startseite; die neue Lernseite erhält ihre eigene korrekte Modellzuordnung. „Aster“ ist ein privater Gesprächsname, kein öffentlicher Credit.
+- Beim bloßen Ergänzen einer Lernseite den Credit der Startseite „landing page by GPT-6 Astra“ mit OpenAI-Logo unverändert lassen. Dieser Credit betrifft die Startseite; die neue Lernseite erhält ihre eigene korrekte Modellzuordnung. „Aster“ ist ein privater Gesprächsname, kein öffentlicher Credit.
 
 ## Kurze Prüfung nach einem neuen Eintrag
 
@@ -27,3 +27,5 @@
 2. Datum und Zielgruppe stimmen; neue Zeile steht auch im HTML chronologisch richtig.
 3. Suche findet Titel und Zahlenraum; Filter und Zähler berücksichtigen die neue Seite.
 4. Zeile ist per Tastatur erreichbar; Titel und Tags überlappen weder auf schmalen noch auf breiten Bildschirmen. Hover- und Fokus-Effekte sowie `prefers-reduced-motion` erhalten.
+
+- Direkt unter „Vibe-Coded Math Stuff“ steht klein und warm-grau-braun „by René Reiche“. Der separate Footer-Credit lautet „landing page by GPT-6 Astra“ mit OpenAI-Logo. Beide Zuordnungen erhalten.
