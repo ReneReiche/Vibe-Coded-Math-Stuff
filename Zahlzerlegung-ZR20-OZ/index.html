@@ -123,12 +123,20 @@
 
         .footer-hint {
             position: absolute;
-            bottom: 30px;
+            bottom: 42px;   /* Platz fuer die Credit-Zeile darunter */
             font-size: 16px;
             color: #aaa;
             background: rgba(0,0,0,0.03);
             padding: 8px 20px;
             border-radius: 20px;
+        }
+
+        /* Credit-Zeile: noch kleiner und blasser als die Fusszeile. */
+        .credit {
+            position: absolute;
+            font-size: 11px;
+            color: #bbb;
+            bottom: 14px;
         }
 
         .fade-in {
@@ -163,6 +171,10 @@
 
     <div class="footer-hint">
         Tipp: <b>→</b> zum Starten und Auflösen &nbsp;|&nbsp; <b>↑</b> wechselt zwischen ZR10 und ZR20 (ohne Zehnerübergang) &nbsp;|&nbsp; <b>↓</b> blendet die Wendeplättchen aus/ein.
+    </div>
+    <!-- Herkunft: erstellt mit Google Gemini (April 2026); die Version ist nicht mehr sicher bekannt, vermutlich 3.0. -->
+    <div class="credit">
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Gemini
     </div>
 
     <script>

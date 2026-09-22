@@ -216,11 +216,25 @@ Unter der Fußzeile steht eine noch kleinere, noch blassere Zeile, die die
 Beteiligten nennt, gefolgt vom Claw'd-Maskottchen als Pixelfigur:
 
 ```
-Idee und Didaktik: René Reiche · Code: Claude (AI)  [Claw'd]
+Idee und Didaktik: René Reiche · Code: Claude Opus 5  [Claw'd]
 ```
 
-Wortlaut ist abgestimmt und bleibt so: „AI", nicht „KI"; „Claude", nicht
-„Claw'd" im Text; kein „Anthropic". Das Maskottchen ist ein Inline-SVG auf
+Hinter „Code:" steht das **konkrete Modell**, das die Seite gebaut hat:
+
+- Ein Modell: einfach nennen, z. B. `Claude Opus 5`.
+- Zwei Modelle: mit Schrägstrich, **das erstellende zuerst**, z. B.
+  `Claude Fable 5 / Opus 5`.
+- Mehr als zwei: `verschiedene KI-Modelle (siehe Quellcode)`.
+- Unsichere Version: lieber keine Nummer als eine falsche (`Claude`, `Gemini`).
+- Direkt über dem `<div class="credit">` steht ein Kommentar
+  `<!-- Herkunft: erstellt mit …, weiterentwickelt mit … -->` mit Details.
+  Beim Weiterentwickeln mit einem anderen Modell Zeile und Kommentar anpassen.
+
+Kein „Anthropic" und nicht „Claw'd" im Text. Claw'd erscheint **nur auf
+Claude-Seiten**; Seiten anderer KIs bekommen die Zeile ohne Figur (Logos
+anderer KIs nur, wenn René sie ausdrücklich bereitstellt). Auf älteren Seiten
+passt sich die Zeile dem Stil der Seite an (Schrift, Grauton), bleibt aber
+gleich klein und unauffällig. Das Maskottchen ist ein Inline-SVG auf
 einem 12 × 9-Raster (Körper, zwei Scheren, vier Beine, zwei Augen), Farbe
 `#d97757`, Augen `#1a1a1a`, **36 × 27 px** — genau 3 px je Rasterfeld, damit
 es bei 100 % Zoom pixelscharf ist. **Kein** `shape-rendering="crispEdges"`:
@@ -233,9 +247,25 @@ mit Kantenglättung bleiben beide gleich breit.
 .credit .mascot { width: 36px; height: 27px; opacity: 0.85; }
 ```
 
-Markup und SVG zum Kopieren: `Ergaenzen-Hunderterfeld-ZR100/index.html`
-(erste Seite mit dieser Zeile). Ältere Seiten haben sie noch nicht —
-Nachrüstbedarf, kein Gegenbeispiel.
+Markup und SVG zum Kopieren: `Ergaenzen-Hunderterfeld-ZR100/index.html`.
+
+**Herkunft der Seiten** (ermittelt aus Git-Historie, Code und
+Claude-Code-Sitzungsprotokollen am 22.09.2026):
+
+| Seite | Code | Beleg |
+|---|---|---|
+| Verliebte-Zahlen | Meta AI (Muse Spark) | Meta-„Playables SDK" im Code |
+| Verdoppeln-Halbieren | Claude | Stil; Modell unbekannt |
+| Zahlzerlegung-ZR20-OZ | Gemini | Stil, Renés Erinnerung; Version unsicher (3.0?) |
+| Zehneruebergang | Claude Opus 4.7 | Commit 98a11ed |
+| Dienes-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Zahlenstrahl-ZR100 | Claude Fable 5 / Opus 5 | Sitzungsprotokoll |
+| Dienes-Addition-ZR100 | Claude Fable 5.1 / Opus 5 | Sitzungsprotokoll |
+| Dienes-Subtraktion-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Ergaenzen-Hunderterfeld-ZR100 | Claude Fable 5.1 | Sitzungsprotokoll |
+| Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Sachunterricht-Vibes/Europa | ChatGPT 6 Astra / Claude Opus 5 | René; Opus 5 hat verfeinert |
 
 ### Farben
 

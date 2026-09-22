@@ -78,6 +78,20 @@
             text-align: center;
         }
 
+        /* Credit-Zeile: noch kleiner und blasser als die Fusszeile. */
+        .credit {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #bbb;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        /* 12 x 9 Rasterfelder zu je genau 3 CSS-Pixeln, damit die Figur bei
+           100 % Zoom pixelscharf ist. Bewusst ohne shape-rendering. */
+        .credit .mascot { width: 36px; height: 27px; opacity: 0.85; }
+
         /* Striche fahren beim Moduswechsel aus der Linie heraus bzw. hinein.
            transform-origin wird je Strich inline auf seine Mitte gesetzt. */
         .tick {
@@ -96,6 +110,25 @@
         <svg id="strahl" viewBox="0 0 1080 260" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
     <div class="hint">Pfeil nach rechts: Antwort zeigen / n&auml;chste Aufgabe &middot; Pfeil nach oben: <span id="mode-label">Einerstriche ausblenden</span></div>
+    <!-- Herkunft: erstellt mit Claude Fable 5 (25.08.2026), weiterentwickelt mit Claude Opus 5. -->
+    <div class="credit">
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Fable 5 / Opus 5
+        <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
+             12 x 9-Raster. Inline-SVG, damit die Seite assetfrei bleibt. -->
+        <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
+            <g fill="#d97757">
+                <rect x="3" y="1" width="7" height="5"/>
+                <rect x="1" y="2" width="2" height="2"/>
+                <rect x="10" y="2" width="2" height="2"/>
+                <rect x="3" y="6" width="1" height="2"/>
+                <rect x="5" y="6" width="1" height="2"/>
+                <rect x="7" y="6" width="1" height="2"/>
+                <rect x="9" y="6" width="1" height="2"/>
+            </g>
+            <rect x="4" y="2" width="1" height="1" fill="#1a1a1a"/>
+            <rect x="8" y="2" width="1" height="1" fill="#1a1a1a"/>
+        </svg>
+    </div>
 
     <script>
         const svg = document.getElementById('strahl');
