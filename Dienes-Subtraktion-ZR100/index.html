@@ -271,6 +271,14 @@
             from { opacity: 0; transform: translateY(6px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+        /* Handy-Vorschau: Wischen steuert die Seite. Zwei Finger duerfen
+           weiter zoomen, Doppeltippen zoomt nicht, Herunterziehen laedt
+           nicht neu, und Antippen blitzt nicht auf. */
+        html, body {
+            touch-action: pinch-zoom;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
     </style>
 </head>
 <body>
@@ -290,21 +298,21 @@
     </div>
 
     <div class="footer-hint">
-        <span class="hint-group"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
+        <span class="hint-group" data-key="ArrowRight"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>&uarr;</b> Aufgabenart: <span id="level-label"></span></span>
+        <span class="hint-group" data-key="ArrowUp"><b>&uarr;</b> Aufgabenart: <span id="level-label"></span></span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>&darr;</b> Weggenommenes: <span id="vanish-label"></span></span>
+        <span class="hint-group" data-key="ArrowDown"><b>&darr;</b> Weggenommenes: <span id="vanish-label"></span></span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>&larr;</b> Vorgabe: <span id="prefill-label"></span></span>
+        <span class="hint-group" data-key="ArrowLeft"><b>&larr;</b> Vorgabe: <span id="prefill-label"></span></span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
+        <span class="hint-group" data-key="s"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>W</b> Streichen wiederholen</span>
+        <span class="hint-group" data-key="w"><b>W</b> Streichen wiederholen</span>
     </div>
-    <!-- Herkunft: erstellt und weiterentwickelt mit Claude Opus 5 (06.09.2026). -->
+    <!-- Herkunft: erstellt und weiterentwickelt mit Claude Opus 5 (06.09.2026). Wischen und antippbare Fußzeile mit Claude Opus 5.5 (23.09.2026). -->
     <div class="credit">
-        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Opus 5
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Opus 5 / Opus 5.5
         <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
              12 x 9-Raster. Inline-SVG, damit die Seite assetfrei bleibt. -->
         <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
@@ -855,5 +863,38 @@
     updateRevealLabel();
     newTask();
     </script>
+<script>
+/* Handy-Vorschau: Wischen wirkt wie die Pfeiltaste in Wischrichtung
+   (nach links wischen = weiter, wie beim Blaettern), und Tastenhinweise
+   mit data-key sind antippbar. Beides loest dieselbe Taste aus wie die
+   Tastatur, damit die Belegung nicht auseinanderlaufen kann. Bewusst
+   ohne sichtbaren Hinweis; am Beamer aendert sich nichts. */
+(function () {
+    function taste(key) {
+        document.dispatchEvent(new KeyboardEvent('keydown',
+            { key: key, bubbles: true, cancelable: true }));
+    }
+    var start = null;
+    window.addEventListener('touchstart', function (e) {
+        start = e.touches.length === 1
+            ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    }, { passive: true });
+    window.addEventListener('touchmove', function (e) {
+        if (e.touches.length > 1) start = null;   // Zwei Finger zoomen.
+    }, { passive: true });
+    window.addEventListener('touchend', function (e) {
+        if (!start) return;
+        var dx = e.changedTouches[0].clientX - start.x;
+        var dy = e.changedTouches[0].clientY - start.y;
+        start = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+        if (Math.abs(dx) > Math.abs(dy)) taste(dx < 0 ? 'ArrowRight' : 'ArrowLeft');
+        else taste(dy < 0 ? 'ArrowUp' : 'ArrowDown');
+    });
+    document.querySelectorAll('[data-key]').forEach(function (el) {
+        el.addEventListener('click', function () { taste(el.dataset.key); });
+    });
+})();
+</script>
 </body>
 </html>

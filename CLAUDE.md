@@ -57,6 +57,47 @@ merkbar. Der Buchstabe gehört mit in die Fußzeile.
 bleibt beim Anzeigen der Lösung ausgeblendet — sonst springt das Tafelbild und
 verwirrt die Kinder. (Ausdrücklicher Wunsch nach Praxistest im Unterricht.)
 
+### Touch — nur für die Handy-Vorschau
+
+Die Dienst-iPads haben Hüllentastaturen; Touch ist für Kolleginnen und
+Kollegen gedacht, die eine Seite vor dem Unterricht auf dem Handy
+durchspielen. Deshalb bewusst schlicht und **unsichtbar**:
+
+- **Wischen = Pfeiltaste in Wischrichtung**, nach links wischen = `→`
+  (wie Umblättern). Unter 40 px und mit zwei Fingern zählt es nicht.
+- **Tastenhinweise in der Fußzeile sind antippbar** (`data-key="…"` am
+  Element), ohne Hover, ohne Tap-Aufblitzen, ohne Hinweis darauf.
+- `touch-action: pinch-zoom` auf `html, body`: Doppeltippen zoomt nicht,
+  zwei Finger zoomen weiter; `overscroll-behavior: none` gegen
+  Neuladen beim Herunterziehen.
+- **Kein** Tippen-irgendwo-für-weiter, **kein** Querformat-Hinweis oder
+  -Zwang (auf dem iPhone ohnehin unmöglich) — ausdrücklich abgelehnt.
+
+Wischen und Antippen lösen ein synthetisches `keydown` auf `document` aus.
+Dadurch bleibt der Tastatur-Handler die einzige Stelle, an der Tasten
+etwas bedeuten. Das kleine Skript am Ende jeder Seite ist überall gleich
+und kann kopiert werden; nur die `data-key`-Attribute sind seitenspezifisch.
+(`Ergaenzen-Hunderterfeld-ZR100` war der Prototyp und ruft stattdessen
+`press()` direkt auf — gleiche Wirkung.) Seiten von Meta und Gemini haben
+kein Touch bekommen.
+
+### Offene Frage für neue Seiten: eine Achse = eine Sache
+
+Beim Wischen fällt auf, was an der Tastatur kaum auffällt: `↑` und `↓` sind
+bisher **zwei unabhängige Drehschalter**. Wer das Hunderterfeld mit Wischen
+nach oben ausblendet, erwartet, es mit Wischen nach unten zurückzuholen —
+stattdessen wechselt die Stufe. Richtungen werden als Gegensätze gelesen.
+
+Vorschlag für künftige Seiten (noch nicht beschlossen, mit René abstimmen):
+
+- `↑`/`↓` sind **ein Paar für eine Einstellung**: schwerer/leichter,
+  Hilfe an/aus, vorige/nächste Variante.
+- `←`/`→` bleiben das Paar für den Ablauf: zurück/weiter.
+- Jede weitere Einstellung bekommt einen **Buchstaben** (am Handy über die
+  antippbare Fußzeile erreichbar).
+
+Die bestehenden Seiten bleiben, wie sie sind.
+
 ## Aufgebaute Tafelbilder — eigenes Genre, eigene `←`-Bedeutung
 
 Manche Seiten zeigen nicht „Aufgabe → Lösung → nächste“, sondern **bauen ein
@@ -250,21 +291,21 @@ mit Kantenglättung bleiben beide gleich breit.
 Markup und SVG zum Kopieren: `Ergaenzen-Hunderterfeld-ZR100/index.html`.
 
 **Herkunft der Seiten** (ermittelt aus Git-Historie, Code und
-Claude-Code-Sitzungsprotokollen am 22.09.2026):
+Claude-Code-Sitzungsprotokollen am 22.09.2026; Opus 5.5 = Touch-Steuerung am 23.09.2026):
 
 | Seite | Code | Beleg |
 |---|---|---|
 | Verliebte-Zahlen | Meta AI (Muse Spark) | Meta-„Playables SDK" im Code |
-| Verdoppeln-Halbieren | Claude | Stil; Modell unbekannt |
+| Verdoppeln-Halbieren | Claude / Opus 5.5 | Stil; Modell unbekannt |
 | Zahlzerlegung-ZR20-OZ | Gemini | Stil, Renés Erinnerung; Version unsicher (3.0?) |
-| Zehneruebergang | Claude Opus 4.7 | Commit 98a11ed |
-| Dienes-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
-| Zahlenstrahl-ZR100 | Claude Fable 5 / Opus 5 | Sitzungsprotokoll |
-| Dienes-Addition-ZR100 | Claude Fable 5.1 / Opus 5 | Sitzungsprotokoll |
-| Dienes-Subtraktion-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
-| Ergaenzen-Hunderterfeld-ZR100 | Claude Fable 5.1 | Sitzungsprotokoll |
-| Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
-| Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Zehneruebergang | Claude Opus 4.7 / Opus 5.5 | Commit 98a11ed |
+| Dienes-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
+| Zahlenstrahl-ZR100 | Claude Fable 5, Opus 5, Opus 5.5 | Sitzungsprotokoll |
+| Dienes-Addition-ZR100 | Claude Fable 5.1, Opus 5, Opus 5.5 | Sitzungsprotokoll |
+| Dienes-Subtraktion-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
+| Ergaenzen-Hunderterfeld-ZR100 | Claude Fable 5.1 / Opus 5.5 | Sitzungsprotokoll |
+| Zehneruebergang-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
+| Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
 | Sachunterricht-Vibes/Europa | ChatGPT 6 Astra / Claude Opus 5 | René; Opus 5 hat verfeinert |
 
 ### Farben

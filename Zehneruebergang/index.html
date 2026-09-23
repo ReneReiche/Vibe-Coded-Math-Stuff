@@ -578,6 +578,14 @@
     letter-spacing: 0.5px;
     z-index: 5;
   }
+        /* Handy-Vorschau: Wischen steuert die Seite. Zwei Finger duerfen
+           weiter zoomen, Doppeltippen zoomt nicht, Herunterziehen laedt
+           nicht neu, und Antippen blitzt nicht auf. */
+        html, body {
+            touch-action: pinch-zoom;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 </style>
 </head>
 <body>
@@ -678,15 +686,15 @@
     </div>
 
     <div class="hint">
-      <kbd>←</kbd> <kbd>→</kbd> Trennposition wählen &nbsp;·&nbsp; <kbd>Enter</kbd> bestätigen
+      <kbd data-key="ArrowLeft">←</kbd> <kbd data-key="ArrowRight">→</kbd> Trennposition wählen &nbsp;·&nbsp; <span data-key="Enter"><kbd>Enter</kbd> bestätigen</span>
     </div>
     <div class="hint hint-entry" id="hintEntry">
-      Ergebnis eingeben: <kbd>0</kbd>–<kbd>9</kbd> tippen oder <kbd>↑</kbd> <kbd>↓</kbd> &nbsp;·&nbsp; <kbd>Enter</kbd> bestätigen
+      Ergebnis eingeben: <kbd>0</kbd>–<kbd>9</kbd> tippen oder <kbd data-key="ArrowUp">↑</kbd> <kbd data-key="ArrowDown">↓</kbd> &nbsp;·&nbsp; <span data-key="Enter"><kbd>Enter</kbd> bestätigen</span>
     </div>
   </div>
-  <!-- Herkunft: erstellt mit Claude Opus 4.7 (Mai 2026, siehe Commit "V2 of Zehnuebergang coded by Claude Opus 4.7"). -->
+  <!-- Herkunft: erstellt mit Claude Opus 4.7 (Mai 2026, siehe Commit "V2 of Zehnuebergang coded by Claude Opus 4.7"). Wischen und antippbare Fußzeile mit Claude Opus 5.5 (23.09.2026). -->
   <div class="credit">
-      Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Opus 4.7
+      Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Opus 4.7 / Opus 5.5
       <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
            12 x 9-Raster. Inline-SVG, damit die Seite assetfrei bleibt. -->
       <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
@@ -1541,6 +1549,39 @@
     positionBondLabels();
     positionFrameFeedback();
   }, 80);
+})();
+</script>
+<script>
+/* Handy-Vorschau: Wischen wirkt wie die Pfeiltaste in Wischrichtung
+   (nach links wischen = weiter, wie beim Blaettern), und Tastenhinweise
+   mit data-key sind antippbar. Beides loest dieselbe Taste aus wie die
+   Tastatur, damit die Belegung nicht auseinanderlaufen kann. Bewusst
+   ohne sichtbaren Hinweis; am Beamer aendert sich nichts. */
+(function () {
+    function taste(key) {
+        document.dispatchEvent(new KeyboardEvent('keydown',
+            { key: key, bubbles: true, cancelable: true }));
+    }
+    var start = null;
+    window.addEventListener('touchstart', function (e) {
+        start = e.touches.length === 1
+            ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    }, { passive: true });
+    window.addEventListener('touchmove', function (e) {
+        if (e.touches.length > 1) start = null;   // Zwei Finger zoomen.
+    }, { passive: true });
+    window.addEventListener('touchend', function (e) {
+        if (!start) return;
+        var dx = e.changedTouches[0].clientX - start.x;
+        var dy = e.changedTouches[0].clientY - start.y;
+        start = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+        if (Math.abs(dx) > Math.abs(dy)) taste(dx < 0 ? 'ArrowRight' : 'ArrowLeft');
+        else taste(dy < 0 ? 'ArrowUp' : 'ArrowDown');
+    });
+    document.querySelectorAll('[data-key]').forEach(function (el) {
+        el.addEventListener('click', function () { taste(el.dataset.key); });
+    });
 })();
 </script>
 </body>
