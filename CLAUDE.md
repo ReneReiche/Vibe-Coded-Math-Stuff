@@ -270,6 +270,10 @@ Hinter „Code:" steht das **konkrete Modell**, das die Seite gebaut hat:
 - Direkt über dem `<div class="credit">` steht ein Kommentar
   `<!-- Herkunft: erstellt mit …, weiterentwickelt mit … -->` mit Details.
   Beim Weiterentwickeln mit einem anderen Modell Zeile und Kommentar anpassen.
+- **Kleine Ergänzungen nur im Kommentar**, nicht in der sichtbaren Zeile
+  (René, 23.09.2026). Beispiel: Die Touch-Steuerung auf allen Seiten
+  stammt von Claude Opus 5.5 und steht nur im Herkunftskommentar. Die
+  sichtbare Zeile nennt, wer die Seite inhaltlich gebaut hat.
 
 Kein „Anthropic" und nicht „Claw'd" im Text. Claw'd erscheint **nur auf
 Claude-Seiten**; Seiten anderer KIs bekommen die Zeile ohne Figur (Logos
@@ -291,21 +295,21 @@ mit Kantenglättung bleiben beide gleich breit.
 Markup und SVG zum Kopieren: `Ergaenzen-Hunderterfeld-ZR100/index.html`.
 
 **Herkunft der Seiten** (ermittelt aus Git-Historie, Code und
-Claude-Code-Sitzungsprotokollen am 22.09.2026; Opus 5.5 = Touch-Steuerung am 23.09.2026):
+Claude-Code-Sitzungsprotokollen am 22.09.2026):
 
 | Seite | Code | Beleg |
 |---|---|---|
 | Verliebte-Zahlen | Meta AI (Muse Spark) | Meta-„Playables SDK" im Code |
-| Verdoppeln-Halbieren | Claude / Opus 5.5 | Stil; Modell unbekannt |
+| Verdoppeln-Halbieren | Claude | Stil; Modell unbekannt |
 | Zahlzerlegung-ZR20-OZ | Gemini | Stil, Renés Erinnerung; Version unsicher (3.0?) |
-| Zehneruebergang | Claude Opus 4.7 / Opus 5.5 | Commit 98a11ed |
-| Dienes-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
-| Zahlenstrahl-ZR100 | Claude Fable 5, Opus 5, Opus 5.5 | Sitzungsprotokoll |
-| Dienes-Addition-ZR100 | Claude Fable 5.1, Opus 5, Opus 5.5 | Sitzungsprotokoll |
-| Dienes-Subtraktion-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
-| Ergaenzen-Hunderterfeld-ZR100 | Claude Fable 5.1 / Opus 5.5 | Sitzungsprotokoll |
-| Zehneruebergang-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
-| Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 / Opus 5.5 | Sitzungsprotokoll |
+| Zehneruebergang | Claude Opus 4.7 | Commit 98a11ed |
+| Dienes-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Zahlenstrahl-ZR100 | Claude Fable 5 / Opus 5 | Sitzungsprotokoll |
+| Dienes-Addition-ZR100 | Claude Fable 5.1 / Opus 5 | Sitzungsprotokoll |
+| Dienes-Subtraktion-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Ergaenzen-Hunderterfeld-ZR100 | Claude Fable 5.1 | Sitzungsprotokoll |
+| Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
 | Sachunterricht-Vibes/Europa | ChatGPT 6 Astra / Claude Opus 5 | René; Opus 5 hat verfeinert |
 
 ### Farben
