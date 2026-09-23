@@ -34,6 +34,12 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
+            /* Handy-Vorschau: Wischen steuert die Seite. Zwei Finger
+               duerfen weiter zoomen, Doppeltippen zoomt nicht, und
+               Herunterziehen laedt die Seite nicht neu. */
+            touch-action: pinch-zoom;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .main-card {
@@ -200,17 +206,17 @@
     </div>
 
     <div class="footer-hint">
-        <span class="hint-group"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
+        <span class="hint-group" data-key="ArrowRight"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>&uarr;</b> Darstellung: <span id="mode-label"></span></span>
+        <span class="hint-group" data-key="ArrowUp"><b>&uarr;</b> Darstellung: <span id="mode-label"></span></span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>&darr;</b> Erg&auml;nzen: <span id="level-label"></span></span>
+        <span class="hint-group" data-key="ArrowDown"><b>&darr;</b> Erg&auml;nzen: <span id="level-label"></span></span>
         <span class="hint-sep">&middot;</span>
-        <span class="hint-group"><b>W</b> Erg&auml;nzung noch einmal legen</span>
+        <span class="hint-group" data-key="w"><b>W</b> Erg&auml;nzung noch einmal legen</span>
     </div>
-    <!-- Herkunft: erstellt und weiterentwickelt mit Claude Fable 5.1 (15.09.2026). -->
+    <!-- Herkunft: erstellt und weiterentwickelt mit Claude Fable 5.1 (15.09.2026); Wischen und antippbare Fußzeile mit Claude Opus 5.5 (23.09.2026). -->
     <div class="credit">
-        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Fable 5.1
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Fable 5.1 / Opus 5.5
         <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
              12 x 9-Raster: Koerper, zwei Scheren, vier Beine, zwei Augen.
              Inline-SVG, damit die Seite assetfrei bleibt. Bewusst ohne
@@ -506,31 +512,60 @@
     }
 
     /* ------------------------------------------------------------------
-       Tastatur
+       Tastatur, Wischen und Fusszeile laufen alle ueber press().
        ------------------------------------------------------------------ */
-    window.addEventListener('keydown', (e) => {
+    function press(key) {
         // Leertaste = Pfeil nach rechts (Vorwaertsknopf der Fernbedienungen).
-        const forward = e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar';
+        const forward = key === 'ArrowRight' || key === ' ' || key === 'Spacebar';
 
         if (forward) {
-            e.preventDefault();
             if (revealed) newTask();
             else reveal();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
+        } else if (key === 'ArrowUp') {
             // Nur die Darstellung wechseln, die Aufgabe bleibt stehen.
             modeIndex = (modeIndex + 1) % MODES.length;
             applyMode();
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
+        } else if (key === 'ArrowDown') {
             // Andere Stufe heisst andere Aufgabe: neu ziehen.
             levelIndex = (levelIndex + 1) % LEVELS.length;
             applyLevel();
             newTask();
-        } else if (e.key.toLowerCase() === 'w') {
-            e.preventDefault();
+        } else if (key.toLowerCase() === 'w') {
             replay();
+        } else {
+            return false;
         }
+        return true;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (press(e.key)) e.preventDefault();
+    });
+
+    /* Handy-Vorschau: Wischen wirkt wie die Pfeiltaste in Wischrichtung
+       (nach links wischen = weiter, wie beim Blaettern). Bewusst ohne
+       sichtbaren Hinweis; am Beamer aendert sich nichts. */
+    let touchStart = null;
+    window.addEventListener('touchstart', (e) => {
+        touchStart = e.touches.length === 1
+            ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 1) touchStart = null;   // Zwei Finger zoomen.
+    }, { passive: true });
+    window.addEventListener('touchend', (e) => {
+        if (!touchStart) return;
+        const dx = e.changedTouches[0].clientX - touchStart.x;
+        const dy = e.changedTouches[0].clientY - touchStart.y;
+        touchStart = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+        if (Math.abs(dx) > Math.abs(dy)) press(dx < 0 ? 'ArrowRight' : 'ArrowLeft');
+        else press(dy < 0 ? 'ArrowUp' : 'ArrowDown');
+    });
+
+    /* Die Tastenhinweise unten sind antippbar, sehen aber nicht so aus. */
+    document.querySelectorAll('.footer-hint [data-key]').forEach((hint) => {
+        hint.addEventListener('click', () => press(hint.dataset.key));
     });
 
     applyMode();
