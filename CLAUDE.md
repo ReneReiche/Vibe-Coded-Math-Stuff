@@ -78,8 +78,10 @@ Dadurch bleibt der Tastatur-Handler die einzige Stelle, an der Tasten
 etwas bedeuten. Das kleine Skript am Ende jeder Seite ist überall gleich
 und kann kopiert werden; nur die `data-key`-Attribute sind seitenspezifisch.
 (`Ergaenzen-Hunderterfeld-ZR100` war der Prototyp und ruft stattdessen
-`press()` direkt auf — gleiche Wirkung.) Seiten von Meta und Gemini haben
-kein Touch bekommen.
+`press()` direkt auf — gleiche Wirkung.) Auch die Seiten von Meta und
+Gemini haben das Skript. `Verliebte-Zahlen` hatte von Meta schon
+„Klick irgendwo = weiter“; das bleibt, und der Hinweis dort bekommt deshalb
+kein `data-key` (sonst ginge es zwei Schritte weiter).
 
 ### Offene Frage für neue Seiten: eine Achse = eine Sache
 
