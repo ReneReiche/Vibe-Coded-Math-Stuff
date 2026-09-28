@@ -361,7 +361,12 @@ teilen sie sich ein Spaltenraster: Zehnerspalte links, Einerspalte rechts.
 Ein Summand ohne Zehner behält seine leere Zehnerspalte, damit seine Einer
 genau unter den anderen Einern liegen — um diese Ordnung geht es dort.
 Abweichend von oben liegen die Einer dort **an der obersten Stange**, wie im
-Schulbuch (René, 28.09.2026).
+Schulbuch (René, 28.09.2026). Der Abstand zwischen den beiden Summanden
+(1,7 u) ist deutlich größer als die Fünferlücke zwischen den Stangen
+(0,5 u) — sonst liest sich 5 + 3 Stangen wie ein einziger Summand. Und
+anders als auf den anderen Dienes-Seiten stehen **beide Summanden von
+Anfang an schwarz** in der Gleichung (Vorgabe „beide Zahlen“ zuerst), wie
+im Heft: dort geht es ums Rechnen, nicht ums Ablesen.
 
 Mit `↓` Zwischenschritte zeigt dieselbe Seite die Ergebnisse von „Zehner
 extra“ und „Einer extra“ als **Zahlenkarten wie im Heft**: blaue Zehnerkarte
