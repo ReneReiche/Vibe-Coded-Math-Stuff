@@ -74,9 +74,10 @@
            derselben Stelle steht und die Karte zwischen zwei Aufgaben nicht
            die Breite wechselt.
            Hoehe: 10 Stangen (bei 100) + Fuenferluecke = 10.5u + 18px Fugen.
-           Breite: 10u Stange + 0.8u Abstand + 9u Einer = 19.8u - plus knapp
-           1u fuer den Jitter, der die Einerwuerfel im Mittel auseinander
-           statt zusammen schiebt und sich ueber neun Wuerfel aufsummiert.
+           Breite: 10u Stange + 0.8u Abstand + 9u Einer + 0.35u Fuenferluecke
+           = 20.15u - plus knapp 1u fuer den Jitter, der die Einerwuerfel im
+           Mittel auseinander statt zusammen schiebt und sich ueber neun
+           Wuerfel aufsummiert.
 
            Die Hoehe gilt fuer alle Stufen, damit die Gleichung beim Wechsel
            der Aufgabenart nicht wandert. Die Breite nicht: in Z - Z kommen
@@ -310,7 +311,7 @@
         <span class="hint-sep">&middot;</span>
         <span class="hint-group" data-key="w"><b>W</b> Streichen wiederholen</span>
     </div>
-    <!-- Herkunft: erstellt und weiterentwickelt mit Claude Opus 5 (06.09.2026). Wischen und antippbare Fußzeile mit Claude Opus 5.5 (23.09.2026; bewusst nicht in der sichtbaren Zeile, weil es nur eine kleine Ergänzung ist). -->
+    <!-- Herkunft: erstellt und weiterentwickelt mit Claude Opus 5 (06.09.2026). Wischen und antippbare Fußzeile mit Claude Opus 5.5 (23.09.2026; bewusst nicht in der sichtbaren Zeile, weil es nur eine kleine Ergänzung ist). Fünferlücke bei den Einerwürfeln mit Claude Opus 5.5 (28.09.2026, ebenfalls nur hier vermerkt). -->
     <div class="credit">
         Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Opus 5
         <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
@@ -514,6 +515,9 @@
 
     const stage = document.getElementById('stage');
 
+    // Fuenferluecke zwischen den Einerwuerfeln, in Wuerfelbreiten.
+    const FIVE_GAP = 0.35;
+
     // Alles, was das aktuelle Bild ausmacht. Wird bei jeder Aufgabe ersetzt.
     let scene = null;
 
@@ -548,7 +552,11 @@
                 cube.style.setProperty('--rot', (Math.random() * 6 - 3).toFixed(2) + 'deg');
                 cube.style.setProperty('--drop', (Math.random() * 0.12).toFixed(3));
                 const shift = (Math.random() * 0.16 - 0.05).toFixed(3);
-                cube.style.marginLeft = (i === 0 ? '0' : 'calc(var(--u) * ' + shift + ')');
+                // Kleine Luecke nach dem fuenften Wuerfel (Kraft der Fuenf),
+                // schmaler als die zwischen den Stangen, damit die Reihe eine
+                // Reihe bleibt.
+                const gap = i === 5 ? FIVE_GAP : 0;
+                cube.style.marginLeft = (i === 0 ? '0' : 'calc(var(--u) * ' + (Number(shift) + gap).toFixed(3) + ')');
                 row.appendChild(cube);
                 cubeEls.push(cube);
             }

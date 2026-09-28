@@ -347,6 +347,10 @@ gegeben normal, aufgedeckt fett.
 
 Einer liegen **rechts neben den Zehnerstangen**, auf Höhe der untersten Stange,
 so wie im *Denken & Rechnen*-Heft. Fünferlücke nach der fünften Stange.
+Auch die Einerwürfel bekommen nach dem fünften eine **kleine Fünferlücke**
+(`FIVE_GAP = 0.35` u, schmaler als die 0,5 u zwischen den Stangen, damit die
+Würfel eine Reihe bleiben). René, 28.09.2026: „soo gut“. Bisher in
+`Dienes-Addition-oZ-ZR100` und `Dienes-Subtraktion-ZR100`.
 
 > **Nachrüstbedarf:** `Dienes-Addition-ZR100` legt die Einer noch in eine Zeile
 > **unter** den Stangenblock. Neue Seiten machen es wie
@@ -357,8 +361,7 @@ teilen sie sich ein Spaltenraster: Zehnerspalte links, Einerspalte rechts.
 Ein Summand ohne Zehner behält seine leere Zehnerspalte, damit seine Einer
 genau unter den anderen Einern liegen — um diese Ordnung geht es dort.
 Abweichend von oben liegen die Einer dort **an der obersten Stange**, wie im
-Schulbuch, und haben ab sechs Würfeln eine kleine Fünferlücke (0,35 u)
-(René, 28.09.2026).
+Schulbuch (René, 28.09.2026).
 
 Ordnernamen: „ohne Zehnerübergang“ wird als **oZ** abgekürzt, das verstehen
 Mathelehrkräfte (René, 28.09.2026); z. B. `Dienes-Addition-oZ-ZR100`.
