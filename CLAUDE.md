@@ -402,7 +402,10 @@ Dort wird das Weggenommene **weggeschoben statt durchgestrichen** — die Stange
 nach unten, die Einer nach rechts unten, jeweils als eigener Block mit eigener
 Fünferlücke. Damit das fertige Bild nicht wie eine Plus-Aufgabe aussieht, liegt
 zu Beginn erst die ganze Menge da (0,9 s), dann rutschen Zehner und danach
-Einer weg und treten auf 45 % zurück.
+Einer weg und treten auf 45 % zurück. Weil man danach das Ergebnis direkt am
+Material ablesen kann, blendet `M` das Material aus (bleibt für die folgenden
+Aufgaben aus, Platz bleibt reserviert) — dann muss gerechnet werden (René,
+28.09.2026).
 
 **Zwei getrennt liegende Materialgruppen bedeuten immer Addition.** Deshalb
 wird beim Minus nichts zur Seite geschoben, solange die Aufgabe noch offen ist —
@@ -500,7 +503,7 @@ Leerstelle und gerät am Rechenstrich den Strichen zu nahe.
 | `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
 | `Dienes-Subtraktion-ZR100` | Minus mit Dienes-Material: Z − Z, ZE − E, ZE − ZE (ZR 100) |
 | `Dienes-Addition-oZ-ZR100` | Plus ohne Zehnerübergang (ZE + ZE, ZE + Z, ZE + E): Summanden untereinander, Zehner links, Einer rechts in festen Spalten wie in der Stellentafel; `↓` blendet „Zehner extra / Einer extra“ unter den Spalten ein |
-| `Dienes-Subtraktion-oZ-ZR100` | Minus ohne Zehnerübergang (ZE − ZE, ZE − Z, ZE − E), Schwesterseite der oZ-Plus-Seite: weggenommene Stangen rutschen nach unten, weggenommene Einer nach rechts unten; gleiche Zwischenschritte mit Zahlenkarten; `W` spielt das Wegschieben noch einmal ab |
+| `Dienes-Subtraktion-oZ-ZR100` | Minus ohne Zehnerübergang (ZE − ZE, ZE − Z, ZE − E), Schwesterseite der oZ-Plus-Seite: weggenommene Stangen rutschen nach unten, weggenommene Einer nach rechts unten; gleiche Zwischenschritte mit Zahlenkarten; `W` spielt das Wegschieben noch einmal ab; `M` blendet das Material aus |
 | `Ergaenzen-Hunderterfeld-ZR100` | Ergänzen auf dem Hunderterfeld, vier Stufen per `↓` (nächster Zehner, im selben Zehner, höherer Zehner, beliebige Zahl); `↑` nur symbolisch |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |

@@ -177,6 +177,13 @@
         /* Zuruecksetzen fuer "nochmal zeigen" ohne Rueckwaerts-Animation. */
         .instant .rod, .instant .cube { transition: none; }
 
+        /* Taste M: Material ausblenden. Nach dem Wegschieben laesst sich das
+           Ergebnis sonst direkt am Material ablesen, und niemand muss mehr
+           rechnen. Die Buehne behaelt ihren Platz, damit Gleichung und
+           Zwischenschritte nicht springen. */
+        .stage { transition: opacity 250ms ease; }
+        body.no-material .stage { opacity: 0; }
+
         /* ---------- Zwischenschritte: Zehner extra, Einer extra ----------
            Jede Rechnung steht unter ihrer eigenen Spalte, bewusst kleiner
            als die Gleichung und nicht gedraengt - wie auf der Plus-Seite. */
@@ -406,6 +413,8 @@
         <span class="hint-group" data-key="s"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
         <span class="hint-sep">&middot;</span>
         <span class="hint-group" data-key="w"><b>W</b> Wegschieben wiederholen</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="m"><b>M</b> Material: <span id="material-label"></span></span>
     </div>
     <!-- Herkunft: erstellt mit Claude Opus 5.5 (28.09.2026). Darstellung nach Renés Vorlage aus dem Schulbuch: weggenommene Zehner rutschen nach unten, weggenommene Einer nach rechts unten. Schwesterseite zu Dienes-Addition-oZ-ZR100. -->
     <div class="credit">
@@ -702,6 +711,7 @@
     let prefillIndex = 0;
     let showSteps = false;
     let stepwise = false;
+    let showMaterial = true;
     let currentTask = null;
 
     // Welche Gruppen sind bereits aufgedeckt? Vorgegebene Zahlen stehen
@@ -719,6 +729,7 @@
     const stepsLabel   = document.getElementById('steps-label');
     const prefillLabel = document.getElementById('prefill-label');
     const revealLabel  = document.getElementById('reveal-label');
+    const materialLabel = document.getElementById('material-label');
 
     function values() {
         const a = currentTask.a;
@@ -810,6 +821,8 @@
         prefillLabel.textContent = PREFILLS[prefillIndex].name;
         revealLabel.textContent  = stepwise ? 'schrittweise' : 'alles auf einmal';
         document.body.classList.toggle('show-steps', showSteps);
+        materialLabel.textContent = showMaterial ? 'sichtbar' : 'ausgeblendet';
+        document.body.classList.toggle('no-material', !showMaterial);
     }
 
     window.addEventListener('keydown', (e) => {
@@ -846,6 +859,11 @@
         } else if (e.key.toLowerCase() === 'w') {
             e.preventDefault();
             playMove();
+        } else if (e.key.toLowerCase() === 'm') {
+            // Gilt fuer alle folgenden Aufgaben, bis M wieder gedrueckt wird.
+            e.preventDefault();
+            showMaterial = !showMaterial;
+            updateLabels();
         }
     });
 
