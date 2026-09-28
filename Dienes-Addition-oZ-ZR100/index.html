@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zehner plus Zehner, Einer plus Einer im ZR 100</title>
+    <title>Plus mit Zehnern und Einern im ZR 100</title>
     <style>
         :root {
             /* Grundeinheit: Kantenlaenge eines Einerwuerfels. Mit
@@ -156,11 +156,15 @@
         }
 
         /* ---------- Zwischenschritte: Zehner extra, Einer extra ----------
-           Jede Rechnung steht unter ihrer eigenen Spalte. */
+           Jede Rechnung steht unter ihrer eigenen Spalte. Bewusst deutlich
+           kleiner als die Gleichung und mit normalen Abstaenden:
+           zusammengedraengt lasen sich Zehner- und Einerrechnung wie eine
+           einzige lange Zeile. Der Sitzkreis ist nah genug an der Tafel,
+           dass auch diese Groesse noch gut lesbar ist. */
         .steps {
             display: none;
-            margin-top: calc(var(--u) * 0.7);
-            font-size: calc(var(--u) * 1.3);
+            margin-top: calc(var(--u) * 0.8);
+            font-size: calc(var(--u) * 1.05);
             font-weight: 500;
             color: var(--ink);
         }
@@ -171,7 +175,7 @@
             display: flex;
             align-items: baseline;
             justify-content: center;
-            gap: calc(var(--u) * 0.3);
+            gap: 0.35em;
             white-space: nowrap;
         }
 
@@ -203,9 +207,74 @@
         }
 
         .steps .slot {
-            min-width: calc(var(--u) * 1.8);
+            min-width: 1.5em;
             border-bottom: 3px solid #444;
-            padding: 0 calc(var(--u) * 0.1);
+            padding: 0 0.1em;
+        }
+
+        /* Blau ist in den Zwischenschritten die Zehnerkarte. Aufgedeckte
+           Summanden bleiben dort deshalb schwarz und werden nur fett - wie
+           am Rechenstrich. */
+        .steps .slot.solved {
+            color: var(--ink);
+        }
+
+        /* Ein Platzhalter mit Karte braucht keinen Strich mehr. Der Strich
+           bleibt unsichtbar stehen, damit die Zeile nicht springt. */
+        .steps .slot.as-card,
+        .equation .slot.as-card {
+            border-bottom-color: transparent;
+        }
+
+        /* ---------- Zahlenkarten wie im Heft ---------- */
+
+        .card {
+            position: relative;
+            display: inline-flex;
+            padding: 0.03em 0.12em;
+            border: 0.05em solid;
+            border-radius: 0.1em;
+            color: var(--ink);
+            font-weight: 600;
+            line-height: 1.15;
+            box-shadow: 0 0.04em 0.1em rgba(0,0,0,0.18);
+        }
+
+        .card .digit {
+            display: inline-block;
+            width: 0.62em;
+            text-align: center;
+        }
+
+        .card.card-z { background: #8cc4f5; border-color: #1e88e5; }
+        .card.card-e { background: #f5a39c; border-color: #e53935; }
+
+        /* Die rote Karte deckt die Einerstelle der blauen zu: gleiche
+           Polsterung, also genau eine Ziffernzelle weiter rechts, dazu
+           der Versatz nach rechts unten (0.2em), damit man wie im Heft
+           sieht, dass darunter eine laengere Karte liegt. */
+        .card-stack {
+            position: relative;
+            display: inline-block;
+            font-size: 0.85em;
+            margin-right: 0.2em;
+        }
+
+        .card-stack .card.card-e {
+            position: absolute;
+            left: calc(0.62em + 0.2em);
+            top: 0.2em;
+        }
+
+        .card.slide-in {
+            animation: slideIn 420ms cubic-bezier(0.34, 1.5, 0.64, 1) both;
+            animation-delay: 150ms;
+        }
+
+        @keyframes slideIn {
+            from { transform: translate(0.9em, 0.6em); opacity: 0; }
+            40%  { opacity: 1; }
+            to   { transform: translate(0, 0); opacity: 1; }
         }
 
         /* ---------- Gleichung ---------- */
@@ -278,7 +347,7 @@
 <body>
 
     <div class="main-card">
-        <div class="title-pill">Plus mit zweistelligen Zahlen</div>
+        <div class="title-pill">Plus mit Zehnern und Einern</div>
 
         <div class="stage">
             <div class="board columns" id="board"></div>
@@ -510,7 +579,8 @@
        Aufgedeckt wird in Gruppen: erst die Summanden, dann (wenn
        eingeblendet) Zehner extra und Einer extra, zuletzt die Summe. Die
        Zahlen in den Zwischenschritten gehoeren zu ihrem Summanden: wer 24
-       sieht, sieht auch 20 und 4, in derselben Farbe.
+       sieht, sieht auch 20 und 4. Dort bleiben sie aber schwarz (aufgedeckt
+       nur fett), weil Blau in den Zwischenschritten die Zehnerkarte ist.
        ------------------------------------------------------------------ */
 
     let levelIndex = 0;
@@ -557,6 +627,39 @@
         return (group === 'a' && count >= 1) || (group === 'b' && count >= 2);
     }
 
+    /* ------------------------------------------------------------------
+       Zahlenkarten wie im Heft: blaue Zehnerkarte (z. B. 80), rote
+       Einerkarte (9). Im Endergebnis deckt die rote Karte die Null der
+       blauen zu, leicht nach rechts unten verschoben - so sieht man, warum
+       aus 80 und 9 die 89 wird und nicht 809.
+       Jede Ziffer steht in einer festen Zelle, damit die rote Karte genau
+       ueber der Einerstelle landet, egal wie breit die Ziffern sind.
+       ------------------------------------------------------------------ */
+
+    function card(n, kind) {
+        const cells = String(n).split('')
+            .map((d) => '<span class="digit">' + d + '</span>').join('');
+        return '<span class="card ' + kind + '">' + cells + '</span>';
+    }
+
+    function stackedCards(sum) {
+        // Vorgelesen wird die Zahl, nicht "40 9".
+        return '<span class="card-stack" role="img" aria-label="' + sum + '">' +
+               card(Math.floor(sum / 10) * 10, 'card-z') +
+               card(sum % 10, 'card-e') +
+               '</span>';
+    }
+
+    /* Welche Platzhalter zeigen Karten statt Ziffern? Nur mit
+       eingeblendeten Zwischenschritten; ohne sie bleibt alles wie gewohnt. */
+    function cardFor(part, v) {
+        if (!showSteps) return null;
+        if (part === 'sT') return card(v.sT, 'card-z');
+        if (part === 'sE') return card(v.sE, 'card-e');
+        if (part === 'sum') return stackedCards(v.sum);
+        return null;
+    }
+
     /* Zeichnet alle Platzhalter aus dem Zustand neu: vorgegebene Zahlen
        schwarz, aufgedeckte blau, der Rest leer. Nur die Gruppen in `fresh`
        blenden sanft ein. */
@@ -567,12 +670,18 @@
             const group = GROUP_OF[part];
             const given = isGiven(group);
             const show = given || revealed.has(group);
-            slot.textContent = show ? String(v[part]) : '';
+            const html = show ? cardFor(part, v) : null;
+            if (html) slot.innerHTML = html;
+            else slot.textContent = show ? String(v[part]) : '';
+            slot.classList.toggle('as-card', !!html);
             slot.classList.toggle('solved', show && !given);
             slot.classList.remove('fade-in');
             if (show && fresh && fresh.indexOf(group) !== -1) {
                 void slot.offsetWidth;
                 slot.classList.add('fade-in');
+                // Die rote Karte rutscht sichtbar auf die Null.
+                const onTop = slot.querySelector('.card-stack .card.card-e');
+                if (onTop) onTop.classList.add('slide-in');
             }
         });
     }
@@ -631,6 +740,7 @@
             // rechts sie auf, statt gleich weiterzublaettern.
             showSteps = !showSteps;
             updateLabels();
+            renderSlots(null);
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
             // Vorgabe umschalten; die Aufgabe bleibt stehen. Was schon

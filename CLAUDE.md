@@ -363,6 +363,17 @@ genau unter den anderen Einern liegen — um diese Ordnung geht es dort.
 Abweichend von oben liegen die Einer dort **an der obersten Stange**, wie im
 Schulbuch (René, 28.09.2026).
 
+Mit `↓` Zwischenschritte zeigt dieselbe Seite die Ergebnisse von „Zehner
+extra“ und „Einer extra“ als **Zahlenkarten wie im Heft**: blaue Zehnerkarte
+(80), rote Einerkarte (9). Im Endergebnis deckt die rote Karte die Null der
+blauen zu, leicht nach rechts unten versetzt — gegen den typischen Fehler
+80 + 9 = 809. Ohne Zwischenschritte bleibt das Ergebnis die gewohnte blaue
+Zahl, mit ihnen erscheinen **nur** die Karten, nie beides. Weil Blau dort die
+Zehnerkarte ist, sind aufgedeckte Zahlen in den Zwischenschritten schwarz
+und nur fett (wie am Rechenstrich); die Zwischenschritte sind bewusst
+kleiner als die Gleichung und nicht gedrängt, sonst lesen Kinder beide
+Rechnungen als eine lange Zeile (René, 28.09.2026).
+
 Ordnernamen: „ohne Zehnerübergang“ wird als **oZ** abgekürzt, das verstehen
 Mathelehrkräfte (René, 28.09.2026); z. B. `Dienes-Addition-oZ-ZR100`.
 
