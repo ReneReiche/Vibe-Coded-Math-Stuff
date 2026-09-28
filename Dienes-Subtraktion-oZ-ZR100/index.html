@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minus mit Zehnern und Einern im ZR 100</title>
+    <style>
+        :root {
+            /* Grundeinheit: Kantenlaenge eines Einerwuerfels. Mit
+               eingeblendeten Zwischenschritten etwas kleiner, damit die
+               zusaetzliche Zeile noch ins Beamerbild passt. */
+            --u: clamp(12px, min(4.2vmin, 3.6vw), 51px);
+
+            --wood: #f6e9bd;
+            --edge: #bfa05a;
+            --line: rgba(150, 118, 52, 0.55);
+
+            --blue: #2196F3;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --ink: #0d0d0d;
+        }
+
+        body.show-steps {
+            --u: clamp(12px, min(3.55vmin, 3vw), 43px);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-card {
+            position: relative;
+            background: var(--card-bg);
+            padding: 58px 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        /* Handy-Vorschau: sonst ragt die Karte links und rechts aus dem Bild. */
+        @media (max-width: 600px) {
+            .main-card { padding-left: 20px; padding-right: 20px; }
+        }
+
+        .title-pill {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            background: var(--blue);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 500;
+            padding: 10px 32px;
+            border-radius: 999px;
+            width: fit-content;
+            margin: 0;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px -2px rgba(33,150,243,0.4);
+        }
+
+        /* ---------- Spalten wie in der Stellentafel ----------
+           Zehnerspalte links, Einerspalte rechts - fuer das Material und
+           die Zwischenschritte darunter. Die Einerspalte ist breiter als
+           auf der Plus-Seite: weggeschobene Einer rutschen nach rechts. */
+        .columns {
+            display: grid;
+            grid-template-columns: calc(var(--u) * 10) calc(var(--u) * 10.8);
+            column-gap: calc(var(--u) * 0.8);
+        }
+
+        /* Feste Groesse, damit Zwischenschritte und Gleichung bei jeder
+           Aufgabe an derselben Stelle stehen. Hoechster Fall: 9 Stangen,
+           davon 8 weggeschoben = 1 Stange + 1.2u Abstand + 8 Stangen mit
+           Fuenferluecke = 10.7u + 14px Fugen. Das Material wird so
+           eingehaengt, dass das Bild NACH dem Wegschieben mittig steht
+           (--top, von renderTask gesetzt). */
+        .stage {
+            width: calc(var(--u) * 21.6);
+            height: calc(var(--u) * 10.9 + 20px);
+        }
+
+        /* Einer liegen rechts neben den Zehnern, auf Hoehe der obersten
+           Stange - wie im Schulbuch und auf der Plus-Seite. */
+        .material {
+            display: flex;
+            align-items: flex-start;
+            gap: calc(var(--u) * 0.8);
+            margin-top: var(--top, 0);
+        }
+
+        /* ---------- Dienes-Material ---------- */
+
+        .rods {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Luecke nach der 5. Stange (Kraft der Fuenf) */
+        .rods .rod:nth-child(6) {
+            margin-top: calc(var(--u) * 0.5);
+        }
+
+        .rod, .cube {
+            background-color: var(--wood);
+            border: 1.5px solid var(--edge);
+            border-radius: 4px;
+            box-sizing: border-box;
+            box-shadow: inset 0 calc(var(--u) * 0.18) 0 rgba(255,255,255,0.55);
+            /* Erst rutschen, dann zuruecktreten. */
+            transition: transform 600ms cubic-bezier(0.45, 0, 0.25, 1),
+                        opacity 300ms ease 600ms;
+        }
+
+        .rod {
+            width: calc(var(--u) * 10);
+            height: var(--u);
+            background-image: repeating-linear-gradient(
+                to right,
+                var(--line) 0 1.5px,
+                transparent 1.5px var(--u)
+            );
+        }
+
+        .cube {
+            width: var(--u);
+            height: var(--u);
+            flex: 0 0 auto;
+            transform: translate(0, 0)
+                       rotate(var(--rot, 0deg))
+                       translateY(calc(var(--u) * var(--drop, 0)));
+        }
+
+        /* Einerwuerfel liegen leicht unordentlich aneinander */
+        .ones {
+            display: flex;
+            align-items: flex-end;
+            height: var(--u);
+        }
+
+        /* ---------- Wegschieben ----------
+           Wie im Heft: weggenommene Zehnerstangen rutschen nach unten, die
+           weggenommenen Einer nach rechts unten. Danach treten sie zurueck
+           (45 %, wie das Durchgestrichene auf der anderen Minus-Seite) -
+           sonst saehe das fertige Bild aus wie eine Plus-Aufgabe mit zwei
+           getrennten Summanden. Die Verschiebung steht in --dx/--dy am
+           Element, in Einheiten von --u, damit sie jede Fenstergroesse
+           mitmacht. */
+        .rod.moved {
+            transform: translateY(var(--dy));
+            opacity: 0.45;
+        }
+
+        .cube.moved {
+            transform: translate(var(--dx), var(--dy))
+                       rotate(calc(var(--rot, 0deg) + 4deg))
+                       translateY(calc(var(--u) * var(--drop, 0)));
+            opacity: 0.45;
+        }
+
+        /* Zuruecksetzen fuer "nochmal zeigen" ohne Rueckwaerts-Animation. */
+        .instant .rod, .instant .cube { transition: none; }
+
+        /* ---------- Zwischenschritte: Zehner extra, Einer extra ----------
+           Jede Rechnung steht unter ihrer eigenen Spalte, bewusst kleiner
+           als die Gleichung und nicht gedraengt - wie auf der Plus-Seite. */
+        .steps {
+            display: none;
+            margin-top: calc(var(--u) * 0.8);
+            font-size: calc(var(--u) * 1.05);
+            font-weight: 500;
+            color: var(--ink);
+        }
+
+        body.show-steps .steps { display: grid; }
+
+        .steps > div {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0.35em;
+            white-space: nowrap;
+        }
+
+        /* Die Einer liegen links in ihrer Spalte, also steht auch ihre
+           Rechnung links. */
+        .steps > div:last-child {
+            justify-content: flex-start;
+        }
+
+        /* ---------- Platzhalter ---------- */
+
+        .slot {
+            display: inline-block;
+            text-align: center;
+            line-height: 1.1;
+            /* Vorgegebene Zahlen gehoeren zur Aufgabenstellung: schwarz. */
+            color: var(--ink);
+            font-weight: 500;
+        }
+
+        /* Aufgedeckte Zahlen blau und fett, klar abgesetzt von der Vorgabe. */
+        .slot.solved {
+            color: var(--blue);
+            font-weight: 700;
+        }
+
+        .slot:empty::before {
+            content: '\00a0';
+        }
+
+        .steps .slot {
+            min-width: 1.5em;
+            border-bottom: 3px solid #444;
+            padding: 0 0.1em;
+        }
+
+        /* Blau ist in den Zwischenschritten die Zehnerkarte. Aufgedeckte
+           Zahlen bleiben dort deshalb schwarz und werden nur fett. */
+        .steps .slot.solved {
+            color: var(--ink);
+        }
+
+        /* Ein Platzhalter mit Karte braucht keinen Strich mehr. Der Strich
+           bleibt unsichtbar stehen, damit die Zeile nicht springt. */
+        .steps .slot.as-card,
+        .equation .slot.as-card {
+            border-bottom-color: transparent;
+        }
+
+        /* ---------- Zahlenkarten wie im Heft ---------- */
+
+        .card {
+            position: relative;
+            display: inline-flex;
+            padding: 0.03em 0.12em;
+            border: 0.05em solid;
+            border-radius: 0.1em;
+            color: var(--ink);
+            font-weight: 600;
+            line-height: 1.15;
+            box-shadow: 0 0.04em 0.1em rgba(0,0,0,0.18);
+        }
+
+        .card .digit {
+            display: inline-block;
+            width: 0.62em;
+            text-align: center;
+        }
+
+        .card.card-z { background: #8cc4f5; border-color: #1e88e5; }
+        .card.card-e { background: #f5a39c; border-color: #e53935; }
+
+        /* Die rote Karte deckt die Einerstelle der blauen zu: gleiche
+           Polsterung, also genau eine Ziffernzelle weiter rechts, dazu
+           der Versatz nach rechts (0.2em) und unten (0.12em). */
+        .card-stack {
+            position: relative;
+            display: inline-block;
+            font-size: 0.85em;
+            margin-right: 0.2em;
+        }
+
+        .card-stack .card.card-e {
+            position: absolute;
+            left: calc(0.62em + 0.2em);
+            top: 0.12em;
+        }
+
+        .card.slide-in {
+            animation: slideIn 420ms cubic-bezier(0.34, 1.5, 0.64, 1) both;
+            animation-delay: 150ms;
+        }
+
+        @keyframes slideIn {
+            from { transform: translate(0.9em, 0.6em); opacity: 0; }
+            40%  { opacity: 1; }
+            to   { transform: translate(0, 0); opacity: 1; }
+        }
+
+        /* ---------- Gleichung ---------- */
+
+        .equation {
+            margin-top: calc(var(--u) * 0.8);
+            font-size: calc(var(--u) * 1.9);
+            font-weight: 500;
+            color: var(--ink);
+            display: flex;
+            align-items: baseline;
+            gap: calc(var(--u) * 0.5);
+            white-space: nowrap;
+        }
+
+        .equation .slot {
+            min-width: calc(var(--u) * 3.2);
+            border-bottom: 4px solid #444;
+            padding: 0 calc(var(--u) * 0.2);
+        }
+
+        .footer-hint {
+            margin-top: 18px;
+            font-size: 16px;
+            color: #aaa;
+            background: rgba(0,0,0,0.03);
+            padding: 8px 20px;
+            border-radius: 20px;
+            max-width: 96vw;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Jede Gruppe bleibt am Stueck. Muss die Zeile doch einmal umbrechen,
+           rutscht eine ganze Gruppe nach unten und nie ein einzelnes Wort. */
+        .footer-hint .hint-group { white-space: nowrap; }
+        .footer-hint .hint-sep { margin: 0 6px; color: #ccc; }
+        .footer-hint b { color: #888; }
+
+        /* Credit-Zeile: noch kleiner und blasser als die Fusszeile. */
+        .credit {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #bbb;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        /* 12 x 9 Rasterfelder zu je genau 3 CSS-Pixeln, damit die Figur bei
+           100 % Zoom pixelscharf ist. Bewusst ohne shape-rendering. */
+        .credit .mascot { width: 36px; height: 27px; opacity: 0.85; }
+
+        .fade-in { animation: fadeIn 0.35s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        /* Handy-Vorschau: Wischen steuert die Seite. Zwei Finger duerfen
+           weiter zoomen, Doppeltippen zoomt nicht, Herunterziehen laedt
+           nicht neu, und Antippen blitzt nicht auf. */
+        html, body {
+            touch-action: pinch-zoom;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="title-pill">Minus mit Zehnern und Einern</div>
+
+        <div class="stage" id="stage"></div>
+
+        <div class="steps columns">
+            <div>
+                <span class="slot" data-part="aT"></span>
+                <span>&minus;</span>
+                <span class="slot" data-part="bT"></span>
+                <span>=</span>
+                <span class="slot" data-part="sT"></span>
+            </div>
+            <div>
+                <span class="slot" data-part="aE"></span>
+                <span>&minus;</span>
+                <span class="slot" data-part="bE"></span>
+                <span>=</span>
+                <span class="slot" data-part="sE"></span>
+            </div>
+        </div>
+
+        <div class="equation">
+            <span class="slot" data-part="a"></span>
+            <span>&minus;</span>
+            <span class="slot" data-part="b"></span>
+            <span>=</span>
+            <span class="slot" data-part="diff"></span>
+        </div>
+    </div>
+
+    <div class="footer-hint">
+        <span class="hint-group" data-key="ArrowRight"><b>&rarr;</b> bzw. <b>Leertaste</b>: L&ouml;sung / n&auml;chste Aufgabe</span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="ArrowUp"><b>&uarr;</b> Aufgabenart: <span id="level-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="ArrowDown"><b>&darr;</b> Zwischenschritte: <span id="steps-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="ArrowLeft"><b>&larr;</b> Vorgabe: <span id="prefill-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="s"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="w"><b>W</b> Wegschieben wiederholen</span>
+    </div>
+    <!-- Herkunft: erstellt mit Claude Opus 5.5 (28.09.2026). Darstellung nach Renés Vorlage aus dem Schulbuch: weggenommene Zehner rutschen nach unten, weggenommene Einer nach rechts unten. Schwesterseite zu Dienes-Addition-oZ-ZR100. -->
+    <div class="credit">
+        Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Opus 5.5
+        <!-- Claw'd, das Claude-Code-Maskottchen, als Pixelfigur auf einem
+             12 x 9-Raster. Inline-SVG, damit die Seite assetfrei bleibt. -->
+        <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
+            <g fill="#d97757">
+                <rect x="3" y="1" width="7" height="5"/>
+                <rect x="1" y="2" width="2" height="2"/>
+                <rect x="10" y="2" width="2" height="2"/>
+                <rect x="3" y="6" width="1" height="2"/>
+                <rect x="5" y="6" width="1" height="2"/>
+                <rect x="7" y="6" width="1" height="2"/>
+                <rect x="9" y="6" width="1" height="2"/>
+            </g>
+            <rect x="4" y="2" width="1" height="1" fill="#1a1a1a"/>
+            <rect x="8" y="2" width="1" height="1" fill="#1a1a1a"/>
+        </svg>
+    </div>
+
+    <script>
+    /* ------------------------------------------------------------------
+       Schwierigkeitsstufen (Pfeil nach oben schaltet rotierend durch)
+
+       Alle Stufen ohne Zehneruebergang: es werden nie mehr Einer
+       weggenommen, als daliegen. Es bleiben immer Zehner und Einer uebrig,
+       damit auf beiden Seiten des Bildes etwas liegen bleibt und die
+       Ergebniskarten nie eine 0 zeigen.
+       ------------------------------------------------------------------ */
+
+    const LEVELS = [
+        {
+            id: 'ze-minus-ze',
+            name: 'ZE − ZE',
+            pairs() {
+                const list = [];
+                for (let mT = 2; mT <= 9; mT++) {
+                    for (let mE = 2; mE <= 9; mE++) {
+                        for (let sT = 1; sT < mT; sT++) {
+                            for (let sE = 1; sE < mE; sE++) {
+                                list.push({ a: mT * 10 + mE, b: sT * 10 + sE });
+                            }
+                        }
+                    }
+                }
+                return list;
+            }
+        },
+        {
+            id: 'ze-minus-z',
+            name: 'ZE − Z',
+            pairs() {
+                const list = [];
+                for (let mT = 2; mT <= 9; mT++) {
+                    for (let mE = 1; mE <= 9; mE++) {
+                        for (let sT = 1; sT < mT; sT++) {
+                            list.push({ a: mT * 10 + mE, b: sT * 10 });
+                        }
+                    }
+                }
+                return list;
+            }
+        },
+        {
+            id: 'ze-minus-e',
+            name: 'ZE − E',
+            pairs() {
+                const list = [];
+                for (let mT = 1; mT <= 9; mT++) {
+                    for (let mE = 2; mE <= 9; mE++) {
+                        for (let sE = 1; sE < mE; sE++) {
+                            list.push({ a: mT * 10 + mE, b: sE });
+                        }
+                    }
+                }
+                return list;
+            }
+        }
+    ];
+
+    /* Wie viele Zahlen stehen schon in der Gleichung, bevor aufgeloest wird?
+       Pfeil nach links schaltet rotierend durch. Wie auf der Plus-Seite
+       stehen zu Beginn beide Zahlen da, wie im Heft. */
+    const PREFILLS = [
+        { count: 2, name: 'beide Zahlen' },
+        { count: 1, name: 'erste Zahl' },
+        { count: 0, name: 'keine Zahl' }
+    ];
+
+    /* ------------------------------------------------------------------
+       Aufgabenauswahl - wie auf Dienes-Subtraktion-ZR100: gezogen wird der
+       Minuend, nicht das Ergebnis, und kleine Minuenden liegen oefter im
+       Beutel. Ein gleichverteiltes Ergebnis wuerde beim Minus einen grossen
+       Minuenden erzwingen. Begruendung der drei Konstanten dort.
+       ------------------------------------------------------------------ */
+
+    const BAG_ZETTEL     = 6;
+    const MINUEND_SKEW   = 4;
+    const MAX_JE_AUFGABE = 9;
+
+    function shuffle(list) {
+        for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+        }
+        return list;
+    }
+
+    LEVELS.forEach((level) => {
+        level.byMinuend = new Map();
+        level.pairs().forEach((pair) => {
+            if (!level.byMinuend.has(pair.a)) level.byMinuend.set(pair.a, []);
+            level.byMinuend.get(pair.a).push(pair.b);
+        });
+
+        const minuends = Array.from(level.byMinuend.keys());
+        const lo = Math.min.apply(null, minuends);
+        const hi = Math.max.apply(null, minuends);
+
+        level.bagSource = [];
+        minuends.forEach((m) => {
+            const ramp = 1 + (MINUEND_SKEW - 1) * (hi - m) / (hi - lo);
+            const times = Math.max(1, Math.min(
+                Math.round(BAG_ZETTEL * ramp),
+                MAX_JE_AUFGABE * level.byMinuend.get(m).length));
+            for (let i = 0; i < times; i++) level.bagSource.push(m);
+        });
+        level.bag = [];
+    });
+
+    function drawTask(level, previous) {
+        if (level.bag.length === 0) level.bag = shuffle(level.bagSource.slice());
+
+        // Derselbe Minuend zweimal hintereinander faellt auf - dann lieber
+        // den vorletzten aus dem Beutel nehmen.
+        let idx = level.bag.length - 1;
+        if (previous && level.bag.length > 1 && level.bag[idx] === previous.a) idx--;
+        const m = level.bag.splice(idx, 1)[0];
+
+        const options = level.byMinuend.get(m);
+        let s = options[Math.floor(Math.random() * options.length)];
+        if (previous && options.length > 1 && m === previous.a && s === previous.b) {
+            s = options[Math.floor(Math.random() * options.length)];
+        }
+        return { a: m, b: s };
+    }
+
+    /* ------------------------------------------------------------------
+       Dienes-Material zeichnen und wegschieben
+
+       Laengen werden als Paar { u, px } gefuehrt: Vielfache von --u plus
+       feste Pixel (die 2px-Fugen zwischen den Stangen). Daraus entstehen
+       calc()-Ausdruecke, die jede Fenstergroesse mitmachen, ohne dass
+       nachgemessen werden muss.
+       ------------------------------------------------------------------ */
+
+    const FIVE_GAP = 0.35;  // Fuenferluecke zwischen den Einerwuerfeln
+    const ROD_GAP  = 0.5;   // Fuenferluecke zwischen den Zehnerstangen
+    const TENS_DY  = 1.2;   // Abstand der weggeschobenen Stangen zum Rest
+    const ONES_DX  = 0.9;   // Einer rutschen so weit nach rechts ...
+    const ONES_DY  = 1.15;  // ... und so weit nach unten
+
+    const STAGE_U  = 10.9;  // Hoehe der Buehne, siehe CSS
+    const STAGE_PX = 20;
+
+    /* Zeitplan in ms: erst liegt die ganze Menge da, dann rutschen die
+       Zehner weg, danach die Einer - in der Reihenfolge der
+       Zwischenschritte darunter. */
+    const T_START = 900;
+    const T_TENS  = 750;
+
+    function calcOf(u, px) {
+        return 'calc(var(--u) * ' + u.toFixed(3) + ' + ' + px + 'px)';
+    }
+
+    /* Unterkante eines Stangenblocks aus n Stangen, von seiner Oberkante. */
+    function rodsHeight(n) {
+        if (n === 0) return { u: 0, px: 0 };
+        return { u: n + (n >= 6 ? ROD_GAP : 0), px: 2 * (n - 1) };
+    }
+
+    function el(tag, className) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        return node;
+    }
+
+    const stage = document.getElementById('stage');
+    let scene = null;
+
+    function renderTask(task) {
+        if (scene) scene.timers.forEach(clearTimeout);
+
+        const T  = Math.floor(task.a / 10), E  = task.a % 10;
+        const sT = Math.floor(task.b / 10), sE = task.b % 10;
+        const t  = T - sT, r = E - sE;   // was liegen bleibt
+
+        const material = el('div', 'material fade-in');
+        const rods = el('div', 'rods');
+        const movedRods = [];
+        for (let i = 0; i < T; i++) {
+            const rod = el('div', 'rod');
+            if (i >= t) {
+                // Weggeschobene Stangen bilden unten einen eigenen Block,
+                // mit eigener Fuenferluecke statt der geerbten.
+                const k = i - t;
+                const dy = TENS_DY
+                    + (t >= 6 ? ROD_GAP : 0)
+                    + (k >= 5 ? ROD_GAP : 0)
+                    - (i >= 5 ? ROD_GAP : 0);
+                // -2px: die Fuge zwischen Rest und erstem weggeschobenen Stab
+                // wird durch den Abstand TENS_DY ersetzt.
+                rod.style.setProperty('--dy', calcOf(dy, -2));
+                movedRods.push(rod);
+            }
+            rods.appendChild(rod);
+        }
+        material.appendChild(rods);
+
+        const ones = el('div', 'ones');
+        const movedCubes = [];
+        for (let i = 0; i < E; i++) {
+            const cube = el('div', 'cube');
+            // leicht unperfekt aneinandergelegt
+            cube.style.setProperty('--rot', (Math.random() * 6 - 3).toFixed(2) + 'deg');
+            cube.style.setProperty('--drop', (Math.random() * 0.12).toFixed(3));
+            const shift = Math.random() * 0.16 - 0.05;
+            const gap = i === 5 ? FIVE_GAP : 0;
+            cube.style.marginLeft = (i === 0 ? '0' : 'calc(var(--u) * ' + (shift + gap).toFixed(3) + ')');
+            if (i >= r) {
+                // Wie bei den Stangen: die weggeschobenen Einer behalten
+                // keine geerbte Fuenferluecke, sie bilden eine eigene Reihe.
+                const k = i - r;
+                const dx = ONES_DX + (k >= 5 ? FIVE_GAP : 0) - (i >= 5 ? FIVE_GAP : 0);
+                cube.style.setProperty('--dx', calcOf(dx, 0));
+                cube.style.setProperty('--dy', calcOf(ONES_DY, 0));
+                movedCubes.push(cube);
+            }
+            ones.appendChild(cube);
+        }
+        material.appendChild(ones);
+
+        // Das Bild nach dem Wegschieben steht mittig auf der Buehne.
+        const tensH = sT > 0
+            ? (() => {
+                const rest = rodsHeight(t), moved = rodsHeight(sT);
+                return { u: rest.u + TENS_DY + moved.u, px: rest.px + moved.px };
+            })()
+            : rodsHeight(T);
+        const onesH = { u: (sE > 0 ? ONES_DY : 0) + 1.12, px: 0 };
+        const h = (tensH.u * 30 + tensH.px >= onesH.u * 30) ? tensH : onesH;
+        material.style.setProperty('--top', calcOf((STAGE_U - h.u) / 2, (STAGE_PX - h.px) / 2));
+
+        stage.innerHTML = '';
+        stage.appendChild(material);
+
+        scene = { material: material, movedRods: movedRods, movedCubes: movedCubes, timers: [] };
+        playMove();
+    }
+
+    /* Spielt das Wegschieben (erneut) ab: zuerst sofort zurueck in die
+       Ausgangslage, dann Zehner, dann Einer. */
+    function playMove() {
+        if (!scene) return;
+        scene.timers.forEach(clearTimeout);
+        scene.timers = [];
+
+        const all = scene.movedRods.concat(scene.movedCubes);
+        scene.material.classList.add('instant');
+        all.forEach((n) => n.classList.remove('moved'));
+        void scene.material.offsetWidth;
+        scene.material.classList.remove('instant');
+
+        let at = T_START;
+        if (scene.movedRods.length > 0) {
+            scene.timers.push(setTimeout(() => {
+                scene.movedRods.forEach((n) => n.classList.add('moved'));
+            }, at));
+            at += T_TENS;
+        }
+        if (scene.movedCubes.length > 0) {
+            scene.timers.push(setTimeout(() => {
+                scene.movedCubes.forEach((n) => n.classList.add('moved'));
+            }, at));
+        }
+    }
+
+    /* ------------------------------------------------------------------
+       Ablauf - wie auf der Plus-Seite
+       ------------------------------------------------------------------ */
+
+    let levelIndex = 0;
+    let prefillIndex = 0;
+    let showSteps = false;
+    let stepwise = false;
+    let currentTask = null;
+
+    // Welche Gruppen sind bereits aufgedeckt? Vorgegebene Zahlen stehen
+    // hier nicht drin, die kommen aus der Vorgabe-Stufe.
+    let revealed = new Set();
+
+    const GROUP_OF = {
+        a: 'a', aT: 'a', aE: 'a',
+        b: 'b', bT: 'b', bE: 'b',
+        sT: 'tens', sE: 'ones', diff: 'diff'
+    };
+
+    const slotEls = Array.from(document.querySelectorAll('.slot[data-part]'));
+    const levelLabel   = document.getElementById('level-label');
+    const stepsLabel   = document.getElementById('steps-label');
+    const prefillLabel = document.getElementById('prefill-label');
+    const revealLabel  = document.getElementById('reveal-label');
+
+    function values() {
+        const a = currentTask.a;
+        const b = currentTask.b;
+        const tens = (n) => Math.floor(n / 10) * 10;
+        return {
+            a: a, aT: tens(a), aE: a % 10,
+            b: b, bT: tens(b), bE: b % 10,
+            sT: tens(a) - tens(b), sE: a % 10 - b % 10, diff: a - b
+        };
+    }
+
+    function revealOrder() {
+        return showSteps ? ['a', 'b', 'tens', 'ones', 'diff'] : ['a', 'b', 'diff'];
+    }
+
+    function isGiven(group) {
+        const count = PREFILLS[prefillIndex].count;
+        return (group === 'a' && count >= 1) || (group === 'b' && count >= 2);
+    }
+
+    /* Zahlenkarten wie im Heft: blaue Zehnerkarte, rote Einerkarte; im
+       Endergebnis deckt die rote die Null der blauen zu. */
+    function card(n, kind) {
+        const cells = String(n).split('')
+            .map((d) => '<span class="digit">' + d + '</span>').join('');
+        return '<span class="card ' + kind + '">' + cells + '</span>';
+    }
+
+    function stackedCards(n) {
+        // Vorgelesen wird die Zahl, nicht "30 3".
+        return '<span class="card-stack" role="img" aria-label="' + n + '">' +
+               card(Math.floor(n / 10) * 10, 'card-z') +
+               card(n % 10, 'card-e') +
+               '</span>';
+    }
+
+    function cardFor(part, v) {
+        if (!showSteps) return null;
+        if (part === 'sT') return card(v.sT, 'card-z');
+        if (part === 'sE') return card(v.sE, 'card-e');
+        if (part === 'diff') return stackedCards(v.diff);
+        return null;
+    }
+
+    function renderSlots(fresh) {
+        const v = values();
+        slotEls.forEach((slot) => {
+            const part = slot.dataset.part;
+            const group = GROUP_OF[part];
+            const given = isGiven(group);
+            const show = given || revealed.has(group);
+            const html = show ? cardFor(part, v) : null;
+            if (html) slot.innerHTML = html;
+            else slot.textContent = show ? String(v[part]) : '';
+            slot.classList.toggle('as-card', !!html);
+            slot.classList.toggle('solved', show && !given);
+            slot.classList.remove('fade-in');
+            if (show && fresh && fresh.indexOf(group) !== -1) {
+                void slot.offsetWidth;
+                slot.classList.add('fade-in');
+                const onTop = slot.querySelector('.card-stack .card.card-e');
+                if (onTop) onTop.classList.add('slide-in');
+            }
+        });
+    }
+
+    function openGroups() {
+        return revealOrder().filter((g) => !isGiven(g) && !revealed.has(g));
+    }
+
+    function reveal() {
+        const open = openGroups();
+        const now = stepwise ? open.slice(0, 1) : open;
+        now.forEach((g) => revealed.add(g));
+        renderSlots(now);
+    }
+
+    function newTask() {
+        currentTask = drawTask(LEVELS[levelIndex], currentTask);
+        renderTask(currentTask);
+        revealed = new Set();
+        renderSlots(null);
+    }
+
+    function updateLabels() {
+        levelLabel.textContent   = LEVELS[levelIndex].name;
+        stepsLabel.textContent   = showSteps ? 'an' : 'aus';
+        prefillLabel.textContent = PREFILLS[prefillIndex].name;
+        revealLabel.textContent  = stepwise ? 'schrittweise' : 'alles auf einmal';
+        document.body.classList.toggle('show-steps', showSteps);
+    }
+
+    window.addEventListener('keydown', (e) => {
+        // Die Leertaste wirkt wie Pfeil nach rechts: Sie ist der reflexhafte
+        // Weiter-Knopf und der Vorwaertsknopf vieler Praesentationsfernbedienungen.
+        const forward = e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar';
+
+        if (forward) {
+            e.preventDefault();
+            if (openGroups().length === 0) newTask();
+            else reveal();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            levelIndex = (levelIndex + 1) % LEVELS.length;
+            updateLabels();
+            currentTask = null;
+            newTask();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            showSteps = !showSteps;
+            updateLabels();
+            renderSlots(null);
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prefillIndex = (prefillIndex + 1) % PREFILLS.length;
+            updateLabels();
+            renderSlots(null);
+        } else if (e.key.toLowerCase() === 's') {
+            // Buchstabe statt Sondertaste: Auf iPad-Huellentastaturen sitzen
+            // gerade die Sondertasten an ungewohnten Stellen.
+            e.preventDefault();
+            stepwise = !stepwise;
+            updateLabels();
+        } else if (e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            playMove();
+        }
+    });
+
+    updateLabels();
+    newTask();
+    </script>
+<script>
+/* Handy-Vorschau: Wischen wirkt wie die Pfeiltaste in Wischrichtung
+   (nach links wischen = weiter, wie beim Blaettern), und Tastenhinweise
+   mit data-key sind antippbar. Beides loest dieselbe Taste aus wie die
+   Tastatur, damit die Belegung nicht auseinanderlaufen kann. Bewusst
+   ohne sichtbaren Hinweis; am Beamer aendert sich nichts. */
+(function () {
+    function taste(key) {
+        document.dispatchEvent(new KeyboardEvent('keydown',
+            { key: key, bubbles: true, cancelable: true }));
+    }
+    var start = null;
+    window.addEventListener('touchstart', function (e) {
+        start = e.touches.length === 1
+            ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    }, { passive: true });
+    window.addEventListener('touchmove', function (e) {
+        if (e.touches.length > 1) start = null;   // Zwei Finger zoomen.
+    }, { passive: true });
+    window.addEventListener('touchend', function (e) {
+        if (!start) return;
+        var dx = e.changedTouches[0].clientX - start.x;
+        var dy = e.changedTouches[0].clientY - start.y;
+        start = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+        if (Math.abs(dx) > Math.abs(dy)) taste(dx < 0 ? 'ArrowRight' : 'ArrowLeft');
+        else taste(dy < 0 ? 'ArrowUp' : 'ArrowDown');
+    });
+    document.querySelectorAll('[data-key]').forEach(function (el) {
+        el.addEventListener('click', function () { taste(el.dataset.key); });
+    });
+})();
+</script>
+</body>
+</html>

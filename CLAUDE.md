@@ -313,6 +313,7 @@ Claude-Code-Sitzungsprotokollen am 22.09.2026):
 | Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
 | Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
 | Dienes-Addition-oZ-ZR100 | Claude Opus 5.5 | Sitzungsprotokoll (28.09.2026) |
+| Dienes-Subtraktion-oZ-ZR100 | Claude Opus 5.5 | Sitzungsprotokoll (28.09.2026) |
 | Sachunterricht-Vibes/Europa | ChatGPT 6 Astra / Claude Opus 5 | René; Opus 5 hat verfeinert |
 
 ### Farben
@@ -395,6 +396,13 @@ Gründe gegen die ausgeschnittene Hand aus dem Heft: sie greift dort drei bis
 vier Stangen und lässt sich nicht auf sieben strecken, für Einerwürfel gibt es
 gar keine passende Haltung, ein Raster-PNG ist am Beamer flau, und die Seiten
 sollen assetfrei bleiben.
+
+**Ausnahme `Dienes-Subtraktion-oZ-ZR100`** (René, 28.09.2026, nach Schulbuch):
+Dort wird das Weggenommene **weggeschoben statt durchgestrichen** — die Stangen
+nach unten, die Einer nach rechts unten, jeweils als eigener Block mit eigener
+Fünferlücke. Damit das fertige Bild nicht wie eine Plus-Aufgabe aussieht, liegt
+zu Beginn erst die ganze Menge da (0,9 s), dann rutschen Zehner und danach
+Einer weg und treten auf 45 % zurück.
 
 **Zwei getrennt liegende Materialgruppen bedeuten immer Addition.** Deshalb
 wird beim Minus nichts zur Seite geschoben, solange die Aufgabe noch offen ist —
@@ -492,6 +500,7 @@ Leerstelle und gerät am Rechenstrich den Strichen zu nahe.
 | `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
 | `Dienes-Subtraktion-ZR100` | Minus mit Dienes-Material: Z − Z, ZE − E, ZE − ZE (ZR 100) |
 | `Dienes-Addition-oZ-ZR100` | Plus ohne Zehnerübergang (ZE + ZE, ZE + Z, ZE + E): Summanden untereinander, Zehner links, Einer rechts in festen Spalten wie in der Stellentafel; `↓` blendet „Zehner extra / Einer extra“ unter den Spalten ein |
+| `Dienes-Subtraktion-oZ-ZR100` | Minus ohne Zehnerübergang (ZE − ZE, ZE − Z, ZE − E), Schwesterseite der oZ-Plus-Seite: weggenommene Stangen rutschen nach unten, weggenommene Einer nach rechts unten; gleiche Zwischenschritte mit Zahlenkarten; `W` spielt das Wegschieben noch einmal ab |
 | `Ergaenzen-Hunderterfeld-ZR100` | Ergänzen auf dem Hunderterfeld, vier Stufen per `↓` (nächster Zehner, im selben Zehner, höherer Zehner, beliebige Zahl); `↑` nur symbolisch |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
