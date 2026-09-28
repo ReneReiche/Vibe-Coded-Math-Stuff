@@ -312,6 +312,7 @@ Claude-Code-Sitzungsprotokollen am 22.09.2026):
 | Ergaenzen-Hunderterfeld-ZR100 | Claude Fable 5.1 | Sitzungsprotokoll |
 | Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
 | Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
+| Dienes-Addition-oZ-ZR100 | Claude Opus 5.5 | Sitzungsprotokoll (28.09.2026) |
 | Sachunterricht-Vibes/Europa | ChatGPT 6 Astra / Claude Opus 5 | René; Opus 5 hat verfeinert |
 
 ### Farben
@@ -350,6 +351,17 @@ so wie im *Denken & Rechnen*-Heft. Fünferlücke nach der fünften Stange.
 > **Nachrüstbedarf:** `Dienes-Addition-ZR100` legt die Einer noch in eine Zeile
 > **unter** den Stangenblock. Neue Seiten machen es wie
 > `Dienes-Subtraktion-ZR100`.
+
+Liegen zwei Summanden **untereinander** (`Dienes-Addition-oZ-ZR100`),
+teilen sie sich ein Spaltenraster: Zehnerspalte links, Einerspalte rechts.
+Ein Summand ohne Zehner behält seine leere Zehnerspalte, damit seine Einer
+genau unter den anderen Einern liegen — um diese Ordnung geht es dort.
+Abweichend von oben liegen die Einer dort **an der obersten Stange**, wie im
+Schulbuch, und haben ab sechs Würfeln eine kleine Fünferlücke (0,35 u)
+(René, 28.09.2026).
+
+Ordnernamen: „ohne Zehnerübergang“ wird als **oZ** abgekürzt, das verstehen
+Mathelehrkräfte (René, 28.09.2026); z. B. `Dienes-Addition-oZ-ZR100`.
 
 Wegnehmen wird **durchgestrichen, nicht mit einer Hand angedeutet**. Ein
 dunkelroter Strich (`#c62828`) pro Materialgruppe, gezogen über die Diagonale
@@ -460,6 +472,7 @@ Leerstelle und gerät am Rechenstrich den Strichen zu nahe.
 | `Dienes-ZR100` | Dienes-Material, Zehner/Einer |
 | `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
 | `Dienes-Subtraktion-ZR100` | Minus mit Dienes-Material: Z − Z, ZE − E, ZE − ZE (ZR 100) |
+| `Dienes-Addition-oZ-ZR100` | Plus ohne Zehnerübergang (ZE + ZE, ZE + Z, ZE + E): Summanden untereinander, Zehner links, Einer rechts in festen Spalten wie in der Stellentafel; `↓` blendet „Zehner extra / Einer extra“ unter den Spalten ein |
 | `Ergaenzen-Hunderterfeld-ZR100` | Ergänzen auf dem Hunderterfeld, vier Stufen per `↓` (nächster Zehner, im selben Zehner, höherer Zehner, beliebige Zahl); `↑` nur symbolisch |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
