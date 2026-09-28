@@ -9,7 +9,7 @@
             /* Grundeinheit: Kantenlaenge eines Einerwuerfels. Mit
                eingeblendeten Zwischenschritten etwas kleiner, damit die
                zusaetzliche Zeile noch ins Beamerbild passt. */
-            --u: clamp(12px, min(4.1vmin, 3.6vw), 50px);
+            --u: clamp(12px, min(3.85vmin, 3.4vw), 47px);
 
             --wood: #f6e9bd;
             --edge: #bfa05a;
@@ -22,7 +22,7 @@
         }
 
         body.show-steps {
-            --u: clamp(12px, min(3.55vmin, 3.1vw), 43px);
+            --u: clamp(12px, min(3.35vmin, 2.95vw), 41px);
         }
 
         body {
@@ -92,7 +92,13 @@
            Stufen: 9 Stangen + Fuenferluecke, darunter eine Einerreihe
            (90er-Zahl + E) = 9.5u + 1.7u Abstand + 1u = 12.2u + 16px Fugen,
            dazu der Jitter der Wuerfel. */
+        /* Taste M: Material ausblenden, damit eine Runde nur mit Zahlen
+           gerechnet wird. Die Buehne behaelt ihren Platz, damit Gleichung
+           und Zwischenschritte nicht springen. */
+        body.no-material .stage { opacity: 0; }
+
         .stage {
+            transition: opacity 250ms ease;
             height: calc(var(--u) * 12.4 + 18px);
             display: flex;
             align-items: center;
@@ -392,6 +398,8 @@
         <span class="hint-group" data-key="ArrowLeft"><b>&larr;</b> Vorgabe: <span id="prefill-label"></span></span>
         <span class="hint-sep">&middot;</span>
         <span class="hint-group" data-key="s"><b>S</b> Aufdecken: <span id="reveal-label"></span></span>
+        <span class="hint-sep">&middot;</span>
+        <span class="hint-group" data-key="m"><b>M</b> Material: <span id="material-label"></span></span>
     </div>
     <!-- Herkunft: erstellt mit Claude Opus 5.5 (28.09.2026). Darstellung nach Renés Vorlage aus dem Schulbuch: beide Summanden untereinander, Zehner links, Einer rechts. -->
     <div class="credit">
@@ -592,6 +600,7 @@
     let prefillIndex = 0;
     let showSteps = false;
     let stepwise = false;
+    let showMaterial = true;
     let currentTask = null;
 
     // Welche Gruppen sind bereits aufgedeckt (blau)? Vorgegebene Summanden
@@ -610,6 +619,7 @@
     const stepsLabel   = document.getElementById('steps-label');
     const prefillLabel = document.getElementById('prefill-label');
     const revealLabel  = document.getElementById('reveal-label');
+    const materialLabel = document.getElementById('material-label');
 
     function values() {
         const a = currentTask.a;
@@ -721,6 +731,8 @@
         prefillLabel.textContent = PREFILLS[prefillIndex].name;
         revealLabel.textContent  = stepwise ? 'schrittweise' : 'alles auf einmal';
         document.body.classList.toggle('show-steps', showSteps);
+        materialLabel.textContent = showMaterial ? 'sichtbar' : 'ausgeblendet';
+        document.body.classList.toggle('no-material', !showMaterial);
     }
 
     window.addEventListener('keydown', (e) => {
@@ -758,6 +770,11 @@
             // gerade die Sondertasten an ungewohnten Stellen.
             e.preventDefault();
             stepwise = !stepwise;
+            updateLabels();
+        } else if (e.key.toLowerCase() === 'm') {
+            // Gilt fuer alle folgenden Aufgaben, bis M wieder gedrueckt wird.
+            e.preventDefault();
+            showMaterial = !showMaterial;
             updateLabels();
         }
     });

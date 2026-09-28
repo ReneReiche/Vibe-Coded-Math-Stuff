@@ -502,7 +502,7 @@ Leerstelle und gerät am Rechenstrich den Strichen zu nahe.
 | `Dienes-ZR100` | Dienes-Material, Zehner/Einer |
 | `Dienes-Addition-ZR100` | Plus mit Dienes-Material: Z + Z und Z + ZE (ZR 100) |
 | `Dienes-Subtraktion-ZR100` | Minus mit Dienes-Material: Z − Z, ZE − E, ZE − ZE (ZR 100) |
-| `Dienes-Addition-oZ-ZR100` | Plus ohne Zehnerübergang (ZE + ZE, ZE + Z, ZE + E): Summanden untereinander, Zehner links, Einer rechts in festen Spalten wie in der Stellentafel; `↓` blendet „Zehner extra / Einer extra“ unter den Spalten ein |
+| `Dienes-Addition-oZ-ZR100` | Plus ohne Zehnerübergang (ZE + ZE, ZE + Z, ZE + E): Summanden untereinander, Zehner links, Einer rechts in festen Spalten wie in der Stellentafel; `↓` blendet „Zehner extra / Einer extra“ unter den Spalten ein; `M` blendet das Material aus |
 | `Dienes-Subtraktion-oZ-ZR100` | Minus ohne Zehnerübergang (ZE − ZE, ZE − Z, ZE − E), Schwesterseite der oZ-Plus-Seite: weggenommene Stangen rutschen nach unten, weggenommene Einer nach rechts unten; gleiche Zwischenschritte mit Zahlenkarten; `W` spielt das Wegschieben noch einmal ab; `M` blendet das Material aus |
 | `Ergaenzen-Hunderterfeld-ZR100` | Ergänzen auf dem Hunderterfeld, vier Stufen per `↓` (nächster Zehner, im selben Zehner, höherer Zehner, beliebige Zahl); `↑` nur symbolisch |
 | `Zahlzerlegung-ZR20-OZ` | Zahlzerlegung ZR 10/20 ohne Zehnerübergang |
