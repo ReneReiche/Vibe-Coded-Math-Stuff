@@ -173,6 +173,66 @@ vom Feld sind dafür vier Spalten reserviert (`RESERVE`); braucht es mehr,
 wächst nur der `viewBox` und das Bild rückt zusammen, damit die Seite nicht
 springt. Genauso macht es die ZR-20-Seite mit ihrem Zwanzigerfeld.
 
+## Mal-Blitz — alle Kinder gleichzeitig, eigenes Genre
+
+`Mal-Blitz-LuL` (Tafel der Lehrkraft am Beamer) und `Mal-Blitz-SuS` (jedes
+Kind am eigenen Schul-iPad) gehören zusammen. Anbahnung des Einmaleins: Die
+Kinder sehen gleich große Gruppen, sagen „Ich sehe 3 mal 2 Vögel“ und wählen
+die Aufgabe 3 · 2 — **erst Anzahl der Gruppen, dann Gruppengröße**. Zweck ist
+der Kahoot-Effekt (gleiche Aufgabe, gemeinsamer Timer, alle zugleich fertig)
+ohne Vorbereitung und ohne Server, weil in Einführungsphasen sonst viele
+Kinder abschalten. René sieht die iPads in Apple Classroom; deshalb färbt
+sich in der Auflösung das ganze Kinder-iPad grün, rot oder grau.
+
+Die Tafelbild-Regeln oben (Pfeiltasten, keine Eingaben, Pille, Hausfarben)
+gelten hier **nicht**. René mochte Stil und Farben ausdrücklich (14.11.2026) —
+nicht an die anderen Seiten angleichen. Die Credit-Zeile mit Claw'd bleibt.
+
+**Regeln bei jeder Änderung:**
+
+- **Beide `index.html` sind bis auf `const PAGE` und `<title>` identisch.**
+  Jedes Gerät berechnet die Aufgaben selbst; weichen die Dateien ab, zeigen
+  Tafel und iPads verschiedene Bilder. Also eine Datei ändern, in die andere
+  kopieren, die zwei Stellen anpassen, **`MB_VERSION` erhöhen** (die Seiten
+  laden sich über http(s) neu, wenn auf dem Server eine höhere Version liegt).
+- **Kein `Math.random()` in der gemeinsamen Logik**, nur der Generator mit
+  Startwert (`mulberry32`). Einzige Ausnahme: Position und Farbe der
+  Antwortknöpfe sind je Gerät verschieden — gegen Abgucken.
+- **Alles wird in `tick()` aus der Uhrzeit hergestellt, nichts
+  fortgeschrieben.** Wer zu spät kommt oder neu lädt, landet in der laufenden
+  Aufgabe. Antworten liegen in `sessionStorage`.
+- Die Tafel verlinkt die Kinderseite über `../Mal-Blitz-SuS/#code`. Diesen
+  Link schickt René per Classroom an die iPads; Ordnernamen nicht ändern.
+
+**Gleichtakt ohne Server:** fünfstelliger Code; die ersten drei Ziffern sind
+die Startzeit im 10-Sekunden-Raster (modulo 1000), die letzten zwei die
+Einstellungen `((stufe*4 + zeitIndex)*4 + anzahlIndex)*2 + darstellung`.
+Aufgaben, Antworten und Anordnung entstehen aus Code, UTC-Datum und
+`MB_VERSION`. Die Geräteuhr wird mit dem `Date`-Header des Servers verglichen
+und ab 2 s Abweichung ausgeglichen (nur über http(s)).
+
+**Ablauf je Aufgabe:** 3 s „Ich sehe …“ ohne Bild, dann Bild und vier
+Antworten für die eingestellte Zeit, dann 6 s Auflösung (`REVEAL`): Gruppen
+werden nacheinander umrandet und nummeriert, dann der ganze Satz mit der
+Aufgabe. Keine Pause, nur Abbrechen an der Tafel. Der erste Tipp zählt, **kein
+Tempo-Bonus** (Raten soll nichts bringen). Falsche Antworten haben System —
+vertauschte Faktoren, falsche Gruppenanzahl, falsche Gruppengröße — und die
+Fehlerart wird am Ende auf dem Kinder-iPad angezeigt.
+
+**Darstellung „frei“ ist Voreinstellung:** Gruppen nur durch räumliche Nähe.
+Mit Kacheln zählten die Kinder bloß Kacheln, statt die Gruppe selbst als
+Einheit zu erkennen; „mit Kacheln“ bleibt als Einstieg wählbar. Bis 6 Dinge
+als Würfelbild (bis 35° gedreht), ab 7 als Reihe mit Fünferlücke 0,35 (bis
+10° gedreht), Emojis selbst aufrecht. Abstand in der Gruppe 1,08–1,5
+Emoji-Breiten, zwischen Gruppen mindestens 2,45 — größere Streuung wurde
+verworfen, weil gleich große Gruppen dann ungleich wirken. Umrandung erst in
+der Auflösung. Feste virtuelle Bühne 1000 × 520, damit alle Geräte dasselbe
+Bild zeigen.
+
+**Bilder sind Emojis** mit Einzahl und Mehrzahl in `ITEMS`; keine Emojis, die
+mehrere Dinge zeigen (Kirschen). Gezeichnete Szenen (Vögel auf Leitungen)
+wurden verworfen, weil sie stilistisch nicht zu Emojis passen.
+
 ## Aussehen
 
 ### Aufgabenkasten
@@ -314,6 +374,7 @@ Claude-Code-Sitzungsprotokollen am 22.09.2026):
 | Rechenstrich-Zehneruebergang-ZR100 | Claude Opus 5 | Sitzungsprotokoll |
 | Dienes-Addition-oZ-ZR100 | Claude Opus 5.5 | Sitzungsprotokoll (28.09.2026) |
 | Dienes-Subtraktion-oZ-ZR100 | Claude Opus 5.5 | Sitzungsprotokoll (28.09.2026) |
+| Mal-Blitz-LuL, Mal-Blitz-SuS | Claude Fable 5.2 | Claude-Chat (14.11.2026); in Claude Code ins Repo eingepasst |
 | Sachunterricht-Vibes/Europa | ChatGPT 6 Astra / Claude Opus 5 | René; Opus 5 hat verfeinert |
 
 ### Farben
@@ -509,5 +570,7 @@ Leerstelle und gerät am Rechenstrich den Strichen zu nahe.
 | `Zehneruebergang` | Zehnerübergang in zwei Schritten (Addition über die 10) |
 | `Zehneruebergang-ZR100` | Zehnerübergang in zwei Schritten bis 100, **von Kindern selbst bearbeitet**: Zerlegung eintippen, danach Kontrolle am Hunderterfeld |
 | `Rechenstrich-Zehneruebergang-ZR100` | Zehnerübergang ZE + E am Rechenstrich, **Schritt für Schritt aufgebautes Tafelbild**; `↓` blendet die Zerlegung des zweiten Summanden als Wendeplättchen ein |
+| `Mal-Blitz-LuL` | Einmaleins anbahnen, **Tafel der Lehrkraft**: Runde einstellen, Code und Link für die iPads, Bild und Auflösung im Gleichtakt |
+| `Mal-Blitz-SuS` | Einmaleins anbahnen, **Kinderseite am eigenen iPad**: Code eintippen, zu gleich großen Gruppen die Malaufgabe antippen |
 | `Verliebte-Zahlen` | Zahlenzerlegung bis 10 |
 | `Verdoppeln-Halbieren` | Verdoppeln und Halbieren |

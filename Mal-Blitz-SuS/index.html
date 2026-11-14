@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Mal-Blitz</title>
+<style>
+:root{
+  --bg:#f4f1ea; --ink:#1f2a37; --soft:#6b7280; --card:#ffffff; --line:#d9d3c6;
+  --ok:#2e9e4f; --bad:#d64545; --none:#8a8f98; --accent:#2f6fde;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;overflow:hidden;
+  transition:background-color .25s;
+}
+body.fb-ok{background:var(--ok)} body.fb-bad{background:var(--bad)} body.fb-none{background:var(--none)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation}
+.view{display:none;height:100vh;height:100dvh;padding:max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom));flex-direction:column;align-items:center}
+.view.active{display:flex}
+h1{font-size:clamp(28px,5vw,44px);margin:6px 0 2px;letter-spacing:.01em}
+h2{font-size:17px;margin:0 0 8px;color:var(--soft);font-weight:600}
+.lead{font-size:clamp(18px,2.6vw,26px);margin:6px 0 10px;text-align:center}
+.tiny{font-size:13px;color:var(--soft);text-align:center;margin-top:8px}
+.linkbtn{color:var(--soft);font-size:15px;text-decoration:underline;padding:10px;margin-top:6px}
+.msg{min-height:1.5em;margin:6px 0;font-size:18px;color:var(--bad);font-weight:600;text-align:center}
+body:not(.board) .boardonly{display:none!important}
+body.board .studentonly{display:none!important}
+
+/* Code-Eingabe */
+#v-join{justify-content:center}
+.codeboxes{display:flex;gap:10px;margin:6px 0}
+.codeboxes span{width:clamp(44px,8vw,64px);height:clamp(56px,10vw,80px);border-radius:14px;background:var(--card);border:3px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:clamp(30px,6vw,46px);font-weight:700}
+.codeboxes span.cur{border-color:var(--accent)}
+.codeboxes.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(340px,80vw)}
+.pad button{height:clamp(54px,9vh,76px);border-radius:16px;background:var(--card);border:2px solid var(--line);font-size:30px;font-weight:700}
+.pad button:active{background:#e9e4d8}
+.pad .ghost{visibility:hidden}
+
+/* Einstellungen */
+#v-setup{overflow:auto}
+.opt{width:min(720px,100%);margin:10px 0}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{flex:1 1 auto;min-width:84px;padding:12px 10px;border-radius:14px;background:var(--card);border:2px solid var(--line);font-size:17px;font-weight:600;line-height:1.25}
+.seg button small{display:block;font-weight:400;font-size:13px;color:var(--soft)}
+.seg button.on{border-color:var(--accent);background:#e4edff}
+.big{margin-top:14px;padding:16px 34px;border-radius:18px;background:var(--accent);color:#fff;font-size:24px;font-weight:700}
+.big:active{filter:brightness(.92)}
+
+/* Warten */
+#v-wait{justify-content:center}
+.bigcode{font-size:clamp(70px,17vw,190px);font-weight:800;letter-spacing:.08em;line-height:1;margin:4px 0 8px;font-variant-numeric:tabular-nums}
+.countdown{font-size:clamp(26px,4.5vw,48px);font-weight:700;margin:10px 0;font-variant-numeric:tabular-nums}
+#copyLink{padding:8px 16px;border-radius:12px;background:var(--card);border:2px solid var(--line);font-size:15px}
+
+/* Spiel */
+#v-play{align-items:stretch;gap:8px}
+#v-play header{display:flex;align-items:center;gap:14px;font-size:clamp(16px,2.2vw,22px);font-weight:700;min-height:34px}
+#hProg{flex:1}
+#hCode{font-variant-numeric:tabular-nums;color:var(--soft)}
+#hScore{font-variant-numeric:tabular-nums}
+.x{width:38px;height:38px;border-radius:50%;background:var(--card);border:2px solid var(--line);font-size:18px}
+#prompt{min-height:1.4em;text-align:center;font-size:clamp(24px,4.2vw,46px);font-weight:800;line-height:1.2}
+#prompt .task{display:inline-block;margin-left:.6em;padding:.02em .5em;border-radius:.4em;background:var(--ink);color:#fff;white-space:nowrap}
+body.fb-ok,body.fb-bad,body.fb-none{color:#fff}
+body.fb-ok #prompt .task,body.fb-bad #prompt .task,body.fb-none #prompt .task{background:#fff;color:var(--ink)}
+#stageWrap{position:relative;flex:1 1 0;min-height:0;background:var(--card);border-radius:22px;border:2px solid var(--line);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block}
+#introOv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink)}
+#introNum{font-size:clamp(18px,2.6vw,28px);color:var(--soft);font-weight:600}
+#introTxt{font-size:clamp(46px,9vw,110px);font-weight:800}
+#timer{height:16px;border-radius:8px;background:rgba(0,0,0,.12);overflow:hidden}
+#timerFill{height:100%;width:100%;background:var(--accent);border-radius:8px}
+#timerFill.hurry{background:#e07a1f}
+body.fb-ok #timer,body.fb-bad #timer,body.fb-none #timer{background:rgba(255,255,255,.3)}
+#answers{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-aspect-ratio:1/1){#answers{grid-template-columns:repeat(2,1fr)}}
+#answers button{height:clamp(64px,13vh,110px);border-radius:18px;color:#fff;font-size:clamp(30px,5.5vw,54px);font-weight:800;
+  font-variant-numeric:tabular-nums;border:5px solid transparent;position:relative;transition:opacity .15s,transform .1s}
+#answers button:active:not(:disabled){transform:scale(.97)}
+#answers .c0{background:#2f6fde} #answers .c1{background:#e07a1f} #answers .c2{background:#8b4fd9} #answers .c3{background:#0f9aa0}
+#answers button.dim{opacity:.32}
+#answers button.picked{border-color:var(--ink)}
+#answers button.right{background:#fff;color:var(--ink);border-color:#fff;opacity:1}
+#answers button.right::after{content:"✓";position:absolute;right:12px;top:4px;font-size:.6em;color:var(--ok)}
+#answers button.wrong{opacity:.75;border-color:#fff}
+#answers button.wrong::after{content:"✗";position:absolute;right:12px;top:4px;font-size:.6em}
+
+/* Bühne */
+svg .ol{stroke:#1f2a37;stroke-opacity:.2;stroke-width:2;transition:fill-opacity .2s,stroke-opacity .2s}
+svg.free .ol{fill-opacity:0;stroke-opacity:0}
+svg .grp.on .ol{fill-opacity:1;stroke-opacity:1;stroke-width:5}
+.badge{opacity:0;transition:opacity .2s}
+.grp.on .badge{opacity:1}
+.badge circle{fill:#1f2a37}
+.badge text{fill:#fff;font-weight:800;font-family:inherit}
+.emo{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+
+/* Credit */
+.credit{margin-top:10px;font-size:11px;color:#a8a294;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.credit .mascot{width:36px;height:27px;opacity:.85}
+
+/* Ende */
+#v-end{justify-content:center;text-align:center}
+.score{font-size:clamp(80px,20vw,200px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.score small{font-size:.35em;font-weight:700;color:var(--soft)}
+.stars{font-size:clamp(26px,5vw,44px);margin:8px 0;letter-spacing:.1em}
+.errs{font-size:21px;color:var(--soft);margin:10px 0;line-height:1.6}
+.errs b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<section id="v-join" class="view">
+  <h1>Mal-Blitz ⚡</h1>
+  <p class="lead">Tippe den Code von der Tafel ein.</p>
+  <div id="codeBoxes" class="codeboxes"><span></span><span></span><span></span><span></span><span></span></div>
+  <p id="joinMsg" class="msg"></p>
+  <div id="pad" class="pad"></div>
+  <div id="clockInfo" class="tiny"></div>
+  <!-- Herkunft: erstellt mit Claude Fable 5.2 (14.11.2026). Idee, Didaktik und Praxisvorgaben: René Reiche. -->
+  <div class="credit">
+    Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Fable 5.2
+    <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
+      <g fill="#d97757"><rect x="3" y="1" width="7" height="5"/><rect x="1" y="2" width="2" height="2"/><rect x="10" y="2" width="2" height="2"/><rect x="3" y="6" width="1" height="2"/><rect x="5" y="6" width="1" height="2"/><rect x="7" y="6" width="1" height="2"/><rect x="9" y="6" width="1" height="2"/></g>
+      <rect x="4" y="2" width="1" height="1" fill="#1a1a1a"/><rect x="8" y="2" width="1" height="1" fill="#1a1a1a"/>
+    </svg>
+  </div>
+</section>
+
+<section id="v-setup" class="view">
+  <h1>Mal-Blitz ⚡ Tafel</h1>
+  <div class="opt"><h2>Zahlenraum</h2><div class="seg" id="segLevel"></div></div>
+  <div class="opt"><h2>Darstellung</h2><div class="seg" id="segDisp"></div></div>
+  <div class="opt"><h2>Zeit pro Aufgabe</h2><div class="seg" id="segTime"></div></div>
+  <div class="opt"><h2>Anzahl der Aufgaben</h2><div class="seg" id="segCount"></div></div>
+  <div class="opt"><h2>Vorlauf bis zum Start</h2><div class="seg" id="segLead"></div></div>
+  <div class="opt"><h2>Ton an der Tafel</h2><div class="seg" id="segSound"></div></div>
+  <button id="startBtn" class="big">Runde starten</button>
+  <div id="clockInfo2" class="tiny"></div>
+  <!-- Herkunft: erstellt mit Claude Fable 5.2 (14.11.2026). Idee, Didaktik und Praxisvorgaben: René Reiche. -->
+  <div class="credit">
+    Idee und Didaktik: Ren&eacute; Reiche &middot; Code: Claude Fable 5.2
+    <svg class="mascot" viewBox="0 0 12 9" aria-hidden="true">
+      <g fill="#d97757"><rect x="3" y="1" width="7" height="5"/><rect x="1" y="2" width="2" height="2"/><rect x="10" y="2" width="2" height="2"/><rect x="3" y="6" width="1" height="2"/><rect x="5" y="6" width="1" height="2"/><rect x="7" y="6" width="1" height="2"/><rect x="9" y="6" width="1" height="2"/></g>
+      <rect x="4" y="2" width="1" height="1" fill="#1a1a1a"/><rect x="8" y="2" width="1" height="1" fill="#1a1a1a"/>
+    </svg>
+  </div>
+</section>
+
+<section id="v-wait" class="view">
+  <p class="lead boardonly">Tippe diesen Code auf deinem iPad ein:</p>
+  <div id="bigCode" class="bigcode boardonly"></div>
+  <p class="lead studentonly">Gleich geht es los!</p>
+  <div id="countdown" class="countdown"></div>
+  <p class="tiny boardonly" id="linkLine"></p>
+  <button id="copyLink" class="boardonly">Link kopieren</button>
+  <button id="cancel1" class="linkbtn boardonly">Abbrechen</button>
+</section>
+
+<section id="v-play" class="view">
+  <header>
+    <div id="hProg"></div>
+    <div id="hCode" class="boardonly"></div>
+    <div id="hScore" class="studentonly"></div>
+    <button id="cancel2" class="x boardonly" aria-label="Runde abbrechen">✕</button>
+  </header>
+  <div id="prompt"></div>
+  <div id="stageWrap">
+    <svg id="stage" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="introOv"><div id="introNum"></div><div id="introTxt">Ich sehe …</div></div>
+  </div>
+  <div id="timer"><div id="timerFill"></div></div>
+  <div id="answers" class="studentonly"></div>
+</section>
+
+<section id="v-end" class="view"><div id="endBox"></div></section>
+
+<script>
+'use strict';
+/* ================= Reine Logik (ohne DOM) ================= */
+/* GEMEINSAME LOGIK: Mal-Blitz-SuS/index.html (Kinder) und Mal-Blitz-LuL/index.html (Tafel) sind bis auf die Zeile
+   "const PAGE" und den <title> identisch. Beide Seiten berechnen die Aufgaben getrennt
+   aus Code und Uhrzeit. Deshalb immer beide Dateien zusammen ändern und MB_VERSION erhöhen. */
+const MB_VERSION = 3;
+const PAGE = 'student';       // 'student' oder 'board'
+const INTRO = 3000, REVEAL = 6000;
+const TIMES = [6, 8, 10, 15];
+const COUNTS = [5, 8, 10, 12];
+const LEADS = [30, 45, 60, 90];
+const LEVELS = [
+  { name: 'Stufe 1', desc: '2 bis 5 Gruppen, je 2 bis 5', a: [2, 5], b: [2, 5] },
+  { name: 'Stufe 2', desc: '2 bis 10 Gruppen, je 2 bis 6', a: [2, 10], b: [2, 6] },
+  { name: 'Stufe 3', desc: 'alles von 1 bis 10', a: [1, 10], b: [1, 10] }
+];
+const ITEMS = [
+  ['🐥', 'Küken', 'Küken'], ['🍪', 'Keks', 'Kekse'], ['⚽', 'Ball', 'Bälle'], ['🍎', 'Apfel', 'Äpfel'],
+  ['🐟', 'Fisch', 'Fische'], ['🚗', 'Auto', 'Autos'], ['⭐', 'Stern', 'Sterne'], ['🐞', 'Käfer', 'Käfer'],
+  ['🍓', 'Erdbeere', 'Erdbeeren'], ['🎈', 'Luftballon', 'Luftballons'], ['🐸', 'Frosch', 'Frösche'],
+  ['🌼', 'Blume', 'Blumen'], ['🍋', 'Zitrone', 'Zitronen'], ['🐌', 'Schnecke', 'Schnecken'],
+  ['🦋', 'Schmetterling', 'Schmetterlinge'], ['🥕', 'Möhre', 'Möhren'], ['🐝', 'Biene', 'Bienen'],
+  ['🍩', 'Donut', 'Donuts'], ['🐢', 'Schildkröte', 'Schildkröten'], ['🦆', 'Ente', 'Enten'],
+  ['🐭', 'Maus', 'Mäuse'], ['🍐', 'Birne', 'Birnen'], ['🎁', 'Geschenk', 'Geschenke'], ['🍄', 'Pilz', 'Pilze'],
+  ['🐰', 'Hase', 'Hasen'], ['🐱', 'Katze', 'Katzen'], ['🐶', 'Hund', 'Hunde'], ['🚀', 'Rakete', 'Raketen'],
+  ['🐧', 'Pinguin', 'Pinguine'], ['🦉', 'Eule', 'Eulen'], ['🍌', 'Banane', 'Bananen'], ['🔔', 'Glocke', 'Glocken']
+];
+const TILE_COLORS = ['#ffe9a8', '#cfe8ff', '#d9f2d0', '#ffd9cf', '#e6dcff', '#d2f1ee'];
+
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return function () { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^= h >>> 16) >>> 0; };
+}
+function mulberry32(a) {
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function shuffle(arr, rnd) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+/* Code = 3 Ziffern Startzeit (10-Sekunden-Raster) + 2 Ziffern Einstellungen */
+function encodeCode(startMs, level, ti, ni, disp) {
+  const slot = Math.floor(startMs / 10000) % 1000;
+  return String(slot).padStart(3, '0') + String((((level * 4 + ti) * 4 + ni) * 2 + disp)).padStart(2, '0');
+}
+function decodeCode(code, nowMs) {
+  if (!/^\d{5}$/.test(code)) return null;
+  const slot = +code.slice(0, 3), s = +code.slice(3);
+  if (s >= 96) return null;
+  const disp = s % 2, ni = (s >> 1) % 4, ti = (s >> 3) % 4, level = s >> 5;
+  const slotNow = Math.floor(nowMs / 10000);
+  const diff = ((slotNow - slot) % 1000 + 1000) % 1000;
+  let st = slotNow - diff;                     // letzter passender Zeitpunkt in der Vergangenheit
+  if (diff > 0 && 1000 - diff <= 90) st += 1000; // oder einer, der in den nächsten 15 Minuten liegt
+  return makeRound(code, st * 10000, level, ti, ni, disp);
+}
+function makeRound(code, start, level, ti, ni, disp) {
+  const T = TIMES[ti] * 1000, N = COUNTS[ni], cycle = INTRO + T + REVEAL;
+  return { code, start, level, ti, ni, disp, T, N, cycle, end: start + N * cycle, qs: genQuestions(code, start, level, N) };
+}
+
+function typeOf(a, b, x, y) {
+  if (x === a && y === b) return 'ok';
+  if (x === b && y === a) return 'swap';
+  if (y === b) return 'groups';
+  if (x === a) return 'size';
+  return 'other';
+}
+function makeOptions(a, b, rnd, lo) {
+  const opts = [{ a, b, type: 'ok' }], seen = new Set([a + 'x' + b]);
+  const add = (x, y, min) => {
+    const k = x + 'x' + y;
+    if (x < min || y < min || x > 10 || y > 10 || seen.has(k) || opts.length >= 4) return false;
+    seen.add(k); opts.push({ a: x, b: y, type: typeOf(a, b, x, y) }); return true;
+  };
+  add(b, a, 1);
+  const d1 = rnd() < 0.5 ? 1 : -1, d2 = rnd() < 0.5 ? 1 : -1;
+  add(a + d1, b, lo) || add(a - d1, b, lo);
+  add(a, b + d2, lo) || add(a, b - d2, lo);
+  const fill = shuffle([[a + 1, b + 1], [a - 1, b - 1], [a + 1, b - 1], [a - 1, b + 1], [a - d1, b], [a, b - d2], [a + 2, b], [a, b + 2], [a - 2, b], [a, b - 2]], rnd);
+  for (const [x, y] of fill) add(x, y, lo);
+  for (const [x, y] of fill) add(x, y, 1);
+  return opts;
+}
+function genQuestions(code, start, level, N) {
+  const d = new Date(start);
+  const day = d.getUTCFullYear() + '-' + d.getUTCMonth() + '-' + d.getUTCDate();
+  const rnd = mulberry32(xmur3('malblitz|' + MB_VERSION + '|' + code + '|' + day)());
+  const L = LEVELS[level], lo = L.a[0] === 1 ? 1 : 2;
+  const ri = (r) => r[0] + Math.floor(rnd() * (r[1] - r[0] + 1));
+  const items = shuffle(ITEMS.map((_, i) => i), rnd), cols = shuffle(TILE_COLORS.map((_, i) => i), rnd);
+  const used = new Set(), qs = [];
+  for (let i = 0; i < N; i++) {
+    let a, b, bad, tries = 0;
+    do {
+      a = ri(L.a); b = ri(L.b); tries++;
+      bad = used.has(a + 'x' + b) || (a === b && rnd() < 0.6) || ((a === 1 || b === 1) && rnd() < 0.65);
+    } while (bad && tries < 80);
+    used.add(a + 'x' + b);
+    qs.push({ a, b, item: items[i % items.length], color: cols[i % cols.length], opts: makeOptions(a, b, rnd, lo), lseed: Math.floor(rnd() * 4294967296) });
+  }
+  return qs;
+}
+
+/* Anordnung: Würfelbilder bis 6, ab 7 eine Reihe mit Fünferlücke. Feste virtuelle Bühne 1000 x 520. */
+const DICE = {
+  1: [[.5, .5]],
+  2: [[.3, .3], [.7, .7]],
+  3: [[.24, .24], [.5, .5], [.76, .76]],
+  4: [[.29, .29], [.71, .29], [.29, .71], [.71, .71]],
+  5: [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]],
+  6: [[.3, .22], [.7, .22], [.3, .5], [.7, .5], [.3, .78], [.7, .78]]
+};
+const DICE_FS = { 1: 1.5, 2: 1.25, 3: 1.05, 4: 1.25, 5: 1.05, 6: 0.9 };
+function tileLayout(a, b) {
+  const W = 1000, H = 520, M = 18, G = 0.5;
+  let tw, th, pts, fs;
+  if (b <= 6) { tw = th = 3.4; pts = DICE[b].map(p => [p[0] * tw, p[1] * th]); fs = DICE_FS[b]; }
+  else {
+    const gap = 0.6, pad = 0.45; tw = b + gap + 2 * pad; th = 1.6; fs = 0.9; pts = [];
+    for (let i = 0; i < b; i++) pts.push([pad + 0.5 + i + (i >= 5 ? gap : 0), th / 2]);
+  }
+  let best = null;
+  for (let cols = 1; cols <= a; cols++) {
+    const rows = Math.ceil(a / cols);
+    const s = Math.min((W - 2 * M) / (cols * tw + (cols - 1) * G), (H - 2 * M) / (rows * th + (rows - 1) * G));
+    const score = s * (rows === 1 ? 1.08 : 1);
+    if (!best || score > best.score + 1e-9) best = { s, cols, rows, score };
+  }
+  const s = Math.min(best.s, 68), cols = best.cols, rows = best.rows;
+  const totalH = (rows * th + (rows - 1) * G) * s, y0 = (H - totalH) / 2, tiles = [];
+  for (let i = 0; i < a; i++) {
+    const r = Math.floor(i / cols), c = i % cols;
+    const inRow = Math.min(cols, a - r * cols);
+    const rowW = (inRow * tw + (inRow - 1) * G) * s, x0 = (W - rowW) / 2;
+    tiles.push({ x: x0 + c * (tw + G) * s, y: y0 + r * (th + G) * s });
+  }
+  const w = tw * s, h = th * s;
+  return {
+    fs: fs * s, e: s, rx: Math.min(w, h) * 0.16,
+    groups: tiles.map(t => ({
+      cx: t.x + w / 2, cy: t.y + h / 2, hw: w / 2, hh: h / 2, deg: 0, bx: t.x + 4, by: t.y + 4,
+      pts: pts.map(p => [t.x + p[0] * s, t.y + p[1] * s])
+    }))
+  };
+}
+
+/* Freie Anordnung: Gruppen nur durch Nähe. Jede Gruppe ist ein gedrehtes Würfelbild
+   (bis 6) oder eine Reihe mit Fünferlücke (ab 7), mit leicht verschiedenen Abständen.
+   Einheit e = Größe eines Emojis. Abstand der Mittelpunkte in einer Gruppe 1,08 bis 1,5 e,
+   zwischen zwei Gruppen mindestens 2,45 e. Alles wird aus q.lseed berechnet und ist
+   deshalb auf jedem Gerät gleich. */
+const PAT = {
+  1: [[0, 0]],
+  2: [[-.5, 0], [.5, 0]],
+  3: [[-1, 0], [0, 0], [1, 0]],
+  4: [[-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]],
+  5: [[-.707, -.707], [.707, -.707], [0, 0], [-.707, .707], [.707, .707]],
+  6: [[-.5, -1], [.5, -1], [-.5, 0], [.5, 0], [-.5, 1], [.5, 1]]
+};
+function pattern(b) {
+  if (b <= 6) return PAT[b];
+  const g = 0.35, total = b - 1 + g, out = [];
+  for (let i = 0; i < b; i++) out.push([i + (i >= 5 ? g : 0) - total / 2, 0]);
+  return out;
+}
+const r6 = (x) => Math.round(x * 1e6) / 1e6;
+function freeLayout(a, b, seed) {
+  const rnd = mulberry32(seed), W = 1000, H = 520, M = 14, strip = b > 6, base = pattern(b);
+  let bw = 0, bh = 0;
+  for (const p of base) { bw = Math.max(bw, Math.abs(p[0])); bh = Math.max(bh, Math.abs(p[1])); }
+  const shapes = [];
+  for (let i = 0; i < a; i++) {
+    const k = r6(strip ? 1.12 + 0.1 * rnd() : 1.08 + 0.42 * rnd());
+    const tilt = Math.round(-35 + 70 * rnd()), flip = rnd() < 0.5;
+    // Zweier und Dreier liegen wie auf dem Würfel schräg, alle anderen stehen aufrecht oder quer; dazu bis zu 35 Grad Drehung
+    const deg = strip ? Math.round(tilt * 10 / 35) : (b === 2 || b === 3) ? (flip ? 45 : -45) + tilt : (flip ? 90 : 0) + tilt;
+    const c = r6(Math.cos(deg * Math.PI / 180)), s = r6(Math.sin(deg * Math.PI / 180));
+    const pts = base.map(p => [r6((p[0] * c - p[1] * s) * k), r6((p[0] * s + p[1] * c) * k)]);
+    let minx = 0, maxx = 0, miny = 0, maxy = 0, rad = 0;
+    for (const p of pts) { minx = Math.min(minx, p[0]); maxx = Math.max(maxx, p[0]); miny = Math.min(miny, p[1]); maxy = Math.max(maxy, p[1]); rad = Math.max(rad, Math.hypot(p[0], p[1])); }
+    shapes.push({ k, deg, c, s, pts, minx, maxx, miny, maxy, rad });
+  }
+  const place = (e) => {
+    const D = 2.45 * e, placed = [];
+    for (const sh of shapes) {
+      const x0 = M + e / 2 - sh.minx * e, x1 = W - M - e / 2 - sh.maxx * e;
+      const y0 = M + e / 2 - sh.miny * e, y1 = H - M - e / 2 - sh.maxy * e;
+      if (x1 < x0 || y1 < y0) return null;
+      let done = false;
+      for (let t = 0; t < 160 && !done; t++) {
+        const cx = Math.round(x0 + rnd() * (x1 - x0)), cy = Math.round(y0 + rnd() * (y1 - y0));
+        let ok = true;
+        for (const p of placed) {
+          const reach = (sh.rad + p.sh.rad) * e + D;
+          if (Math.abs(cx - p.cx) > reach || Math.abs(cy - p.cy) > reach) continue;
+          for (const u of sh.pts) {
+            const ux = cx + u[0] * e, uy = cy + u[1] * e;
+            for (const v of p.sh.pts) {
+              const dx = ux - (p.cx + v[0] * e), dy = uy - (p.cy + v[1] * e);
+              if (dx * dx + dy * dy < D * D) { ok = false; break; }
+            }
+            if (!ok) break;
+          }
+          if (!ok) break;
+        }
+        if (ok) { placed.push({ cx, cy, sh }); done = true; }
+      }
+      if (!done) return null;
+    }
+    return placed;
+  };
+  let e = 62, placed = null;
+  while (!placed) {
+    for (let r = 0; r < 5 && !placed; r++) placed = place(e);
+    if (!placed) e = r6(e * 0.93);
+    if (e < 8) { placed = place(e) || []; break; }
+  }
+  placed.sort((p, q) => (Math.round(p.cy / 130) - Math.round(q.cy / 130)) || (p.cx - q.cx));
+  const groups = placed.map(p => {
+    const sh = p.sh, hw = (bw * sh.k + 0.74) * e, hh = (bh * sh.k + 0.74) * e;
+    let bx = 0, by = 0, best = Infinity;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      const x = p.cx + (sx * hw * sh.c - sy * hh * sh.s), y = p.cy + (sx * hw * sh.s + sy * hh * sh.c);
+      if (x + 1.5 * y < best) { best = x + 1.5 * y; bx = x; by = y; }
+    }
+    bx = Math.max(20, Math.min(W - 20, bx)); by = Math.max(20, Math.min(H - 20, by));
+    return { cx: p.cx, cy: p.cy, hw, hh, deg: sh.deg, bx, by, pts: sh.pts.map(u => [p.cx + u[0] * e, p.cy + u[1] * e]) };
+  });
+  return { fs: e * 0.95, e, rx: e * 0.74, groups };
+}
+function layoutFor(q, disp) { return disp === 1 ? tileLayout(q.a, q.b) : freeLayout(q.a, q.b, q.lseed); }
+function sentence(q) {
+  const it = ITEMS[q.item];
+  return 'Ich sehe ' + q.a + ' mal ' + q.b + ' ' + (q.b === 1 ? it[1] : it[2]) + '.';
+}
+function taskText(o) { return o.a + ' · ' + o.b; }
+
+/*__DOM__*/
+/* ================= Oberfläche ================= */
+const $ = (id) => document.getElementById(id);
+let mode = 'student';          // 'student' | 'board'
+let R = null;                  // laufende Runde
+let A = {};                    // Antworten dieses Geräts: A[q] = {k, type}
+let order = {};                // Reihenfolge der Antworten auf diesem Gerät
+let offset = 0, clockNote = '';
+let stageQ = -1, lastKey = '', lastBeepSec = -1, curQ = -1, curPhase = '';
+let AC = null;
+const settings = { level: 0, disp: 0, ti: 1, ni: 2, li: 1, sound: 1 };
+const HTTP = /^https?:$/.test(location.protocol);
+
+const now = () => Date.now() + offset;
+
+/* ---- Uhr gegen den Server prüfen (gleicht nur grobe Abweichungen aus) ---- */
+async function syncClock() {
+  if (!HTTP) { clockNote = 'Uhr: nicht geprüft (lokale Datei)'; showClock(); return; }
+  const est = [];
+  for (let i = 0; i < 3; i++) {
+    try {
+      const t0 = Date.now();
+      const r = await fetch(location.pathname + '?zeit=' + t0 + '_' + i, { method: 'HEAD', cache: 'no-store' });
+      const t1 = Date.now(), d = r.headers.get('date');
+      if (d && !isNaN(Date.parse(d))) est.push(Date.parse(d) + 500 - (t0 + t1) / 2);
+    } catch (e) { /* offline: Geräteuhr verwenden */ }
+  }
+  if (!est.length) { clockNote = 'Uhr: nicht geprüft'; showClock(); return; }
+  est.sort((x, y) => x - y);
+  const m = est[est.length >> 1];
+  if (Math.abs(m) >= 2000) { offset = m; clockNote = 'Uhr: ' + (m / 1000).toFixed(1).replace('.', ',') + ' s Abweichung, wird ausgeglichen'; }
+  else clockNote = 'Uhr: in Ordnung';
+  showClock();
+}
+function showClock() { const t = 'Version ' + MB_VERSION + ' · ' + clockNote; $('clockInfo').textContent = t; $('clockInfo2').textContent = t; }
+
+/* ---- Liegt auf dem Server eine neuere Fassung? Dann neu laden, damit Tafel und iPads zusammenpassen. ---- */
+async function checkUpdate() {
+  if (!HTTP || R) return;
+  try {
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    const m = (await r.text()).match(/const MB_VERSION = (\d+);/);
+    if (!m || +m[1] <= MB_VERSION || R) return;
+    const flag = 'malblitz:reload:' + m[1];
+    if (sessionStorage.getItem(flag)) return;
+    sessionStorage.setItem(flag, '1');
+    location.replace(location.pathname + '?v=' + m[1] + location.hash);
+  } catch (e) { /* offline */ }
+}
+
+/* ---- Ansichten ---- */
+function showView(name) {
+  for (const v of document.querySelectorAll('.view')) v.classList.toggle('active', v.id === 'v-' + name);
+}
+function setMode(m) { mode = m; document.body.classList.toggle('board', m === 'board'); }
+function clearFb() { document.body.classList.remove('fb-ok', 'fb-bad', 'fb-none'); }
+
+/* ---- Code-Eingabe ---- */
+let typed = '';
+function drawCode() {
+  const boxes = $('codeBoxes').children;
+  for (let i = 0; i < 5; i++) { boxes[i].textContent = typed[i] || ''; boxes[i].classList.toggle('cur', i === typed.length); }
+}
+function joinFail(msg) {
+  $('joinMsg').textContent = msg; typed = ''; drawCode();
+  const cb = $('codeBoxes'); cb.classList.remove('shake'); void cb.offsetWidth; cb.classList.add('shake');
+}
+function tryJoin(code) {
+  const r = decodeCode(code, now());
+  if (!r) return joinFail('Diesen Code gibt es nicht.');
+  if (now() >= r.end) return joinFail('Diese Runde ist schon vorbei.');
+  startRound(r, 'student');
+}
+function buildPad() {
+  const pad = $('pad');
+  for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫']) {
+    const b = document.createElement('button');
+    b.textContent = k; if (!k) b.className = 'ghost';
+    b.addEventListener('click', () => {
+      $('joinMsg').textContent = '';
+      if (k === '⌫') typed = typed.slice(0, -1);
+      else if (typed.length < 5) typed += k;
+      drawCode();
+      if (typed.length === 5) { const c = typed; setTimeout(() => tryJoin(c), 120); }
+    });
+    pad.appendChild(b);
+  }
+}
+function goJoin() { R = null; setMode('student'); clearFb(); typed = ''; drawCode(); $('joinMsg').textContent = ''; showView('join'); lastKey = ''; }
+
+/* ---- Einstellungen (Tafel) ---- */
+function buildSeg(id, key, labels) {
+  const el = $(id); el.innerHTML = '';
+  labels.forEach((html, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = html; b.classList.toggle('on', settings[key] === i);
+    b.addEventListener('click', () => {
+      settings[key] = i; buildSeg(id, key, labels);
+      try { localStorage.setItem('malblitz:settings', JSON.stringify(settings)); } catch (e) {}
+    });
+    el.appendChild(b);
+  });
+}
+function goSetup() {
+  R = null; setMode('board'); clearFb(); lastKey = '';
+  buildSeg('segDisp', 'disp', ['frei<small>Gruppen nur durch Nähe</small>', 'mit Kacheln<small>Gruppen auf Feldern</small>']);
+  buildSeg('segLevel', 'level', LEVELS.map(l => l.name + '<small>' + l.desc + '</small>'));
+  if (settings.ti >= TIMES.length) settings.ti = 1;
+  buildSeg('segTime', 'ti', TIMES.map(t => t + ' s'));
+  buildSeg('segCount', 'ni', COUNTS.map(n => String(n)));
+  buildSeg('segLead', 'li', LEADS.map(s => s + ' s'));
+  buildSeg('segSound', 'sound', ['aus', 'an']);
+  showView('setup');
+}
+function newBoardRound() {
+  if (settings.sound) { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) { AC = null; } }
+  const start = Math.ceil((now() + LEADS[settings.li] * 1000) / 10000) * 10000;
+  const code = encodeCode(start, settings.level, settings.ti, settings.ni, settings.disp);
+  startRound(makeRound(code, start, settings.level, settings.ti, settings.ni, settings.disp), 'board');
+}
+function beep(f, d, v, delay) {
+  if (!AC || !settings.sound || mode !== 'board') return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime + (delay || 0);
+    o.frequency.value = f; o.connect(g); g.connect(AC.destination);
+    g.gain.setValueAtTime(v || 0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.start(t); o.stop(t + d + 0.02);
+  } catch (e) {}
+}
+
+/* ---- Runde ---- */
+function saveKey() { return 'malblitz:' + R.code + ':' + R.start; }
+function save() { try { sessionStorage.setItem(saveKey(), JSON.stringify(A)); } catch (e) {} }
+function startRound(r, m) {
+  R = r; setMode(m); A = {}; order = {}; stageQ = -1; lastKey = ''; lastBeepSec = -1; clearFb();
+  if (m === 'student') { try { A = JSON.parse(sessionStorage.getItem(saveKey())) || {}; } catch (e) { A = {}; } }
+  const link = new URL('../Mal-Blitz-SuS/', location.href).href + '#' + r.code;   // Kinderseite liegt im Nachbarordner
+  $('bigCode').textContent = r.code;
+  $('hCode').textContent = 'Code ' + r.code;
+  $('linkLine').textContent = HTTP ? link : '';
+  $('copyLink').hidden = !HTTP;
+  $('copyLink').textContent = 'Link kopieren';
+  $('copyLink').onclick = () => { try { navigator.clipboard.writeText(link).then(() => { $('copyLink').textContent = 'Kopiert ✓'; }); } catch (e) {} };
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+}
+
+function buildStage(q) {
+  const L = layoutFor(q, R.disp), emo = ITEMS[q.item][0], col = TILE_COLORS[q.color];
+  const br = Math.max(15, Math.min(24, L.e * 0.42)), f = (x) => x.toFixed(1);
+  let h = '';
+  L.groups.forEach((g, i) => {
+    h += '<g class="grp"><rect class="ol" x="' + f(-g.hw) + '" y="' + f(-g.hh) + '" width="' + f(2 * g.hw) + '" height="' + f(2 * g.hh) + '" rx="' + f(L.rx) +
+      '" fill="' + col + '" transform="translate(' + f(g.cx) + ',' + f(g.cy) + ') rotate(' + g.deg + ')"/>';
+    for (const p of g.pts) h += '<text class="emo" x="' + f(p[0]) + '" y="' + f(p[1]) + '" font-size="' + f(L.fs) + '" text-anchor="middle" dy=".36em">' + emo + '</text>';
+    h += '<g class="badge"><circle cx="' + f(g.bx) + '" cy="' + f(g.by) + '" r="' + f(br) + '"/><text x="' + f(g.bx) + '" y="' + f(g.by) + '" text-anchor="middle" dy=".36em" font-size="' + f(br * 1.15) + '">' + (i + 1) + '</text></g></g>';
+  });
+  const st = $('stage');
+  st.setAttribute('class', R.disp === 1 ? 'tiles' : 'free');
+  st.innerHTML = h;
+}
+function setHighlight(n) {
+  const gs = $('stage').querySelectorAll('.grp');
+  gs.forEach((t, i) => t.classList.toggle('on', i < n));
+}
+function buildAnswers(qi) {
+  const q = R.qs[qi], box = $('answers');
+  if (!order[qi]) order[qi] = { pos: shuffle([0, 1, 2, 3], Math.random), col: shuffle([0, 1, 2, 3], Math.random) };
+  box.innerHTML = '';
+  order[qi].pos.forEach((k, i) => {
+    const b = document.createElement('button');
+    b.className = 'c' + order[qi].col[i]; b.dataset.k = k;
+    b.addEventListener('click', () => {
+      if (!R || curQ !== qi || curPhase !== 'show' || A[qi]) return;
+      A[qi] = { k, type: q.opts[k].type }; save(); updateAnswers(qi, 'show');
+    });
+    box.appendChild(b);
+  });
+}
+function updateAnswers(qi, phase) {
+  const q = R.qs[qi], ans = A[qi];
+  for (const b of $('answers').children) {
+    const k = +b.dataset.k, o = q.opts[k], picked = ans && ans.k === k;
+    b.textContent = phase === 'intro' ? '' : taskText(o);
+    b.disabled = phase !== 'show' || !!ans;
+    b.classList.toggle('picked', !!picked && phase === 'show');
+    b.classList.toggle('right', phase === 'reveal' && o.type === 'ok');
+    b.classList.toggle('wrong', phase === 'reveal' && !!picked && o.type !== 'ok');
+    b.classList.toggle('dim', phase === 'reveal' ? (o.type !== 'ok' && !picked) : (phase === 'show' && !!ans && !picked));
+  }
+}
+function points(upTo) { let n = 0; for (let i = 0; i < upTo; i++) if (A[i] && A[i].type === 'ok') n++; return n; }
+function streak(upTo) { let n = 0; for (let i = upTo - 1; i >= 0 && A[i] && A[i].type === 'ok'; i--) n++; return n; }
+
+function renderPhase(qi, phase) {
+  const q = R.qs[qi];
+  if (stageQ !== qi) { buildStage(q); buildAnswers(qi); stageQ = qi; }
+  curQ = qi; curPhase = phase;
+  $('hProg').textContent = 'Aufgabe ' + (qi + 1) + ' von ' + R.N;
+  $('introNum').textContent = 'Aufgabe ' + (qi + 1);
+  $('introOv').hidden = phase !== 'intro';
+  $('stage').style.visibility = phase === 'intro' ? 'hidden' : 'visible';
+  clearFb(); setHighlight(0);
+  if (phase !== 'reveal') $('prompt').textContent = phase === 'intro' ? '' : 'Ich sehe …';
+  if (phase === 'reveal' && mode === 'student') {
+    if (!A[qi]) { A[qi] = { k: -1, type: 'none' }; save(); }
+    document.body.classList.add(A[qi].type === 'ok' ? 'fb-ok' : A[qi].type === 'none' ? 'fb-none' : 'fb-bad');
+  }
+  updateAnswers(qi, phase);
+  const done = phase === 'reveal' ? qi + 1 : qi, st = streak(done);
+  $('hScore').textContent = '⭐ ' + points(done) + (st >= 2 ? '   🔥 ' + st : '');
+  $('timerFill').classList.remove('hurry');
+  if (phase === 'show') beep(520, 0.15, 0.15);
+  if (phase === 'reveal') { beep(784, 0.2, 0.2); beep(1047, 0.35, 0.2, 0.18); }
+  lastBeepSec = -1;
+}
+
+function showEnd() {
+  clearFb(); curPhase = 'end';
+  const box = $('endBox');
+  if (mode === 'board') {
+    box.innerHTML = '<h1>Runde vorbei! 🎉</h1><p class="lead">' + R.N + ' Aufgaben geschafft.</p>' +
+      '<button class="big" id="again">Neue Runde</button><br><button class="linkbtn" id="toSetup">Einstellungen</button>';
+    $('again').onclick = newBoardRound; $('toSetup').onclick = goSetup;
+  } else {
+    const cnt = { ok: 0, swap: 0, groups: 0, size: 0, other: 0, none: 0 };
+    for (let i = 0; i < R.N; i++) cnt[A[i] ? A[i].type : 'none']++;
+    const parts = [];
+    if (cnt.swap) parts.push('vertauscht: <b>' + cnt.swap + '</b>');
+    if (cnt.groups) parts.push('Gruppen verzählt: <b>' + cnt.groups + '</b>');
+    if (cnt.size) parts.push('Gruppengröße verzählt: <b>' + cnt.size + '</b>');
+    if (cnt.other) parts.push('anderes: <b>' + cnt.other + '</b>');
+    if (cnt.none) parts.push('keine Antwort: <b>' + cnt.none + '</b>');
+    box.innerHTML = '<p class="lead">Geschafft!</p><div class="score">' + cnt.ok + '<small> von ' + R.N + '</small></div>' +
+      '<div class="stars">' + '⭐'.repeat(cnt.ok) + '</div><div class="errs">' + parts.join(' · ') + '</div>' +
+      '<button class="big" id="again">Neuer Code</button>';
+    $('again').onclick = goJoin;
+  }
+  showView('end');
+}
+
+/* ---- Takt: alles wird aus der Uhrzeit berechnet ---- */
+function tick() {
+  requestAnimationFrame(tick);
+  if (!R) return;
+  const t = now() - R.start;
+  if (t < 0) {
+    if (lastKey !== 'wait') { lastKey = 'wait'; clearFb(); showView('wait'); }
+    const s = Math.ceil(-t / 1000);
+    $('countdown').textContent = 'Start in ' + s + ' s';
+    return;
+  }
+  const qi = Math.floor(t / R.cycle);
+  if (qi >= R.N) { if (lastKey !== 'end') { lastKey = 'end'; showEnd(); } return; }
+  const p = t - qi * R.cycle;
+  const phase = p < INTRO ? 'intro' : p < INTRO + R.T ? 'show' : 'reveal';
+  const key = qi + '|' + phase;
+  if (key !== lastKey) { if (lastKey === 'wait' || lastKey === '' || lastKey === 'end') showView('play'); lastKey = key; renderPhase(qi, phase); }
+  const fill = $('timerFill');
+  if (phase === 'intro') fill.style.width = '100%';
+  else if (phase === 'show') {
+    const rem = INTRO + R.T - p;
+    fill.style.width = (rem / R.T * 100).toFixed(2) + '%';
+    fill.classList.toggle('hurry', rem <= 3000);
+    const sec = Math.ceil(rem / 1000);
+    if (sec <= 3 && sec !== lastBeepSec) { lastBeepSec = sec; beep(660, 0.1, 0.15); }
+  } else {
+    fill.style.width = '0%';
+    const q = R.qs[qi], rt = p - INTRO - R.T;
+    const step = Math.max(220, Math.min(600, 2600 / q.a));
+    const hc = Math.min(q.a, Math.floor(rt / step) + 1);
+    setHighlight(hc);
+    const pr = $('prompt'), want = rt < q.a * step ? 'c' + hc : 'full';
+    if (pr.dataset.s !== key + want) {
+      pr.dataset.s = key + want;
+      if (want === 'full') pr.innerHTML = sentence(q) + '<span class="task">' + taskText(q) + '</span>';
+      else pr.textContent = hc + ' mal …';
+    }
+  }
+}
+
+/* ---- Start ---- */
+function init() {
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('malblitz:settings')) || {}); } catch (e) {}
+  buildPad(); drawCode();
+  $('startBtn').onclick = newBoardRound;
+  $('cancel1').onclick = goSetup; $('cancel2').onclick = goSetup;
+  if (PAGE === 'board') goSetup();
+  else {
+    const route = () => {
+      const h = location.hash.replace('#', '');
+      goJoin(); if (/^\d{5}$/.test(h)) { typed = h; drawCode(); tryJoin(h); }
+    };
+    window.addEventListener('hashchange', route);
+    route();
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+  syncClock(); checkUpdate();
+  requestAnimationFrame(tick);
+}
+init();
+</script>
+</body>
+</html>

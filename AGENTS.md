@@ -5,7 +5,8 @@
 - **Bei einer neuen Lernseite auch einen Eintrag in der Startseite ergänzen.** In `index.html` nach `NEUE SEITE HINZUFÜGEN` suchen. Dort steht eine vollständige Kopiervorlage mit allen Feldern.
 - Pro Seite genau ein `.activity`-Link: relativer Pfad `ORDNER/index.html`, Titel, Zahlenraum, Einsatz (`sitzkreis` oder `schueler`) und Datum der ersten Veröffentlichung (`data-added` und `time`). Bei Updates das Datum nicht ändern.
 - Reihenfolge: **älteste zuerst**. Bei gleichem Datum bestehende Reihenfolge erhalten. Filter, Suche und Zähler lesen die HTML-Einträge automatisch; keine zweite Datenliste pflegen.
-- Aktuell sind `Zehneruebergang` und `Zehneruebergang-ZR100` für Schüler:innen, die anderen Lernseiten für den Sitzkreis. Die Startseite selbst ist keine Lernseite und wird nicht als Eintrag verlinkt.
+- Aktuell sind `Zehneruebergang`, `Zehneruebergang-ZR100` und `Mal-Blitz-SuS` für Schüler:innen, die anderen Lernseiten für den Sitzkreis.
+- **Mal-Blitz besteht aus zwei Ordnern mit je einem eigenen Eintrag:** `Mal-Blitz-LuL` (Lehrkraft, Tafel am Beamer, `sitzkreis`) und `Mal-Blitz-SuS` (Kinder-iPads, `schueler`). Die beiden `index.html` sind bis auf `const PAGE` und `<title>` identisch und müssen es bleiben; bei jeder Änderung beide Dateien angleichen und `MB_VERSION` erhöhen. Die Tafel verlinkt die Kinderseite über `../Mal-Blitz-SuS/`; Ordner deshalb nicht umbenennen. Einzelheiten in `CLAUDE.md`, Abschnitt „Mal-Blitz“. Die Startseite selbst ist keine Lernseite und wird nicht als Eintrag verlinkt.
 - Für die Startseite gelten normale klick- und tastaturbedienbare Navigation und Suche; die Tafelbild-Tastenregeln aus `CLAUDE.md` gelten für Lernseiten.
 - Credit der Startseite: „landing page by GPT-6 Astra“ mit eingebettetem OpenAI-Logo. Credits der Lernseiten beim Ergänzen von Links nicht verändern.
 
